@@ -5,7 +5,51 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Nunito', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root {
+    color-scheme: light;
+    --color-page: #f5f7fb;
+    --color-panel: #ffffff;
+    --color-panel-muted: #f6f8fb;
+    --color-ink: #202535;
+    --color-muted: #788195;
+    --color-line: #e2e7f0;
+    --color-accent-start: #5f77df;
+    --color-accent-end: #8a49c8;
+    --color-accent-ink: #ffffff;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-page: #171a21;
+    --color-panel: #20242d;
+    --color-panel-muted: #292e39;
+    --color-ink: #f8f9fc;
+    --color-muted: #a5aec0;
+    --color-line: #373e4c;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+        --color-page: #171a21;
+        --color-panel: #20242d;
+        --color-panel-muted: #292e39;
+        --color-ink: #f8f9fc;
+        --color-muted: #a5aec0;
+        --color-line: #373e4c;
+    }
+}
+
+* {
+    border-color: var(--color-line);
+}
+
+body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
 }
