@@ -8,4 +8,11 @@ new class extends Component
 };
 ?>
 
-<div>Landing Page</div>
+<div>
+    <a
+        className="transition hover:text-[--color-accent-start]"
+        href="/login"
+    >
+        Login Page
+    </a>
+</div>

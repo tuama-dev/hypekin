@@ -1,13 +1,22 @@
-import { Form, Head } from "@inertiajs/react";
+import { Form, Head, Link, usePage } from "@inertiajs/react";
 import { ArrowRight, Check, LockIcon, Mail, ShieldCheck } from "lucide-react";
-import AuthController from "@/actions/App/Http/Controllers/Application/AuthController";
+import AuthController from "@/actions/App/Http/Controllers/Application/Auth/AuthController";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { GradientButton } from "@/components/ui/gradient-button";
+import { SocialButtons } from "@/components/ui/social-buttons";
 import { TextInput } from "@/components/ui/text-input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { themeConfig } from "@/config/theme";
+import CustomToaster from "@/components/ui/CustomToaster";
+import { toast } from "sonner";
 
 export default function Login() {
+    const { flash } = usePage().props;
+
+    if (flash.error) {
+        toast.error(flash.error);
+    }
+
     return (
         <>
             <Head title="Log in" />
@@ -24,7 +33,7 @@ export default function Login() {
                             <h1 className="max-w-lg text-6xl leading-[0.98] font-extrabold tracking-[-0.04em] xl:text-7xl">
                                 {themeConfig.login.title}
                             </h1>
-                            <p className="mt-6 text-base leading-7 text-white/75 text-center">
+                            <p className="mt-6 text-center text-base leading-7 text-white/75">
                                 {themeConfig.login.description}
                             </p>
                         </div>
@@ -60,7 +69,26 @@ export default function Login() {
                             </p>
                         </div>
 
-                        <Form {...AuthController.auth()} className="grid gap-5">
+                        <div className="mb-8">
+                            <SocialButtons />
+                        </div>
+
+                        <div
+                            className="mt-6 mb-4 flex items-center gap-4"
+                            aria-hidden="true"
+                        >
+                            <span className="h-px flex-1 bg-[var(--color-line)]" />
+                            <span className="text-xs font-semibold text-[var(--color-muted)]">
+                                or using email account
+                            </span>
+                            <span className="h-px flex-1 bg-[var(--color-line)]" />
+                        </div>
+
+                        <Form
+                            action={AuthController.auth().url}
+                            method={AuthController.auth().method}
+                            className="grid gap-5"
+                        >
                             {({ errors, processing }) => (
                                 <>
                                     <TextInput
@@ -129,7 +157,17 @@ export default function Login() {
                             )}
                         </Form>
 
-                        <p className="mt-8 inline-flex w-full items-center justify-center gap-2 text-xs font-semibold text-[var(--color-muted)]">
+                        <p className="mt-8 inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-[var(--color-muted)]">
+                            Don't have an account?
+                            <Link
+                                href="/register"
+                                className="text-[var(--color-primary)] hover:underline"
+                            >
+                                Register
+                            </Link>
+                        </p>
+
+                        <p className="mt-20 inline-flex w-full items-center justify-center gap-2 text-xs font-semibold text-[var(--color-muted)]">
                             <ShieldCheck
                                 size={15}
                                 className="text-emerald-500"
@@ -140,6 +178,7 @@ export default function Login() {
                         </p>
                     </div>
                 </section>
+                <CustomToaster />
             </main>
         </>
     );

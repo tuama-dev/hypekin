@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\WorkspaceRole;
 use App\Models\User;
+use App\Models\Workspace;
 
 test('users can log in with valid credentials', function () {
     $user = User::factory()->create([
@@ -23,7 +25,7 @@ test('users cannot log in with invalid credentials', function () {
         'password' => 'secret-password',
     ]);
 
-    $response = $this->from(route('login'))->post(route('login.store'), [
+    $response = $this->from(route('login'))->post(route('login.auth'), [
         'email' => $user->email,
         'password' => 'wrong-password',
     ]);
@@ -31,4 +33,53 @@ test('users cannot log in with invalid credentials', function () {
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors('email');
     $this->assertGuest();
+});
+
+test('a user without a workspace gets one when logging in', function () {
+    $user = User::factory()->create([
+        'fullname' => 'John Doe',
+        'email' => 'jane@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->post(route('login.auth'), [
+        'email' => 'jane@example.com',
+        'password' => 'secret-password',
+    ])->assertRedirect(route('workspace.dashboard'));
+
+    $this->assertAuthenticatedAs($user);
+
+    $workspace = $user->workspaces()->firstOrFail();
+
+    expect($workspace->only(['name', 'slug']))
+        ->toBe([
+            'name' => "John Doe's Workspace",
+            'slug' => 'john-does-workspace',
+        ]);
+
+    $this->assertDatabaseHas('workspace_user', [
+        'workspace_id' => $workspace->id,
+        'user_id' => $user->id,
+        'role' => WorkspaceRole::Owner->value,
+    ]);
+
+    expect($user->workspaces()->count())->toBe(1);
+});
+
+test('a user with a workspace keeps only that one when logging in', function () {
+    $user = User::factory()
+        ->has(Workspace::factory())
+        ->create([
+            'email' => 'jane@example.com',
+            'password' => 'secret-password',
+        ]);
+
+    $this->post(route('login.auth'), [
+        'email' => 'jane@example.com',
+        'password' => 'secret-password',
+    ])->assertRedirect(route('workspace.dashboard'));
+
+    $this->assertAuthenticatedAs($user);
+
+    expect($user->workspaces()->count())->toBe(1);
 });

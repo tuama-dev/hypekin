@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,15 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'flash' => [
+                'error' => $request->session()->get('flash.error'),
+                'success' => $request->session()->get('flash.success'),
+            ],
+            'verification' => $request->user() !== null
+                ? [
+                    'resend_available_at' => EmailVerificationController::nextResendAvailableAt($request)?->toIso8601String(),
+                ]
+                : null,
         ];
     }
 }

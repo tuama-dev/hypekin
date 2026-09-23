@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Application\Workspace;
+namespace App\Http\Controllers\Application;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        return inertia('workspace/dashboard');
+        return Inertia::render('Application/Dashboard');
     }
 }
