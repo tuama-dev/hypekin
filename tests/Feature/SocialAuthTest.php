@@ -21,10 +21,14 @@ test('a new user can register with a social provider', function () {
         'email' => 'jane@example.com',
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $response = $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $this->assertAuthenticated();
+
+    $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
 
     $this->assertDatabaseHas('users', [
         'fullname' => 'Jane Doe',
@@ -44,8 +48,7 @@ test('a new social user gets a personal workspace', function () {
         'email' => 'jane@example.com',
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
 
@@ -70,19 +73,20 @@ test('a new social user without an email is verified and can access the dashboar
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-noemail',
         'name' => 'No Email User',
+        'email' => null,
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $this->assertAuthenticated();
 
-    $user = User::query()->where('email', 'google-noemail@google.invalid')->firstOrFail();
+    $user = User::query()->where('email', 'google-google-noemail@google.invalid')->firstOrFail();
+    $workspace = $user->workspaces()->firstOrFail();
 
     expect($user->hasVerifiedEmail())->toBeTrue();
 
     $this->actingAs($user)
-        ->get(route('workspace.dashboard'))
+        ->get(route('workspace.dashboard', ['workspace' => $workspace]))
         ->assertOk();
 });
 
@@ -94,8 +98,7 @@ test('an existing user without a workspace gets one when signing in with a socia
         'email' => 'jane@example.com',
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $this->assertAuthenticatedAs($user);
     expect($user->workspaces()->count())->toBe(1);
@@ -111,10 +114,13 @@ test('an existing user can log in with a social provider by email', function () 
         'email' => 'jane@example.com',
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $response = $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $this->assertAuthenticatedAs($user);
+
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
     $this->assertSame(1, $user->oauthProviders()->count());
 });
 
@@ -133,10 +139,13 @@ test('a returning user is logged in without creating a duplicate', function () {
         'email' => $user->email,
     ]));
 
-    $this->get(route('auth.social.callback', ['provider' => 'google']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $response = $this->get(route('auth.social.callback', ['provider' => 'google']));
 
     $this->assertAuthenticatedAs($user);
+
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
     $this->assertSame(1, User::count());
     $this->assertSame(1, UserOauthProvider::count());
 });
@@ -149,9 +158,12 @@ test('an authenticated user can link a social provider', function () {
         'email' => $user->email,
     ]));
 
-    $this->actingAs($user)
-        ->get(route('auth.social.callback', ['provider' => 'facebook']))
-        ->assertRedirect(route('workspace.dashboard'));
+    $response = $this->actingAs($user)
+        ->get(route('auth.social.callback', ['provider' => 'facebook']));
+
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
 
     $this->assertDatabaseHas('user_oauth_providers', [
         'user_id' => $user->id,

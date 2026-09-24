@@ -1,11 +1,10 @@
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import { ChevronRight, X } from "lucide-react";
-import { index as dashboardIndex } from "@/actions/App/Http/Controllers/Application/DashboardController";
-import { appTheme } from "@/config/theme";
 
 import { SidebarItem } from "@/config/navigation/application";
 import { navigation } from "@/config/navigation/application";
+import WorkspaceSwitcher from "@/components/ui/WorkspaceSwitcher";
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -17,6 +16,7 @@ interface SidebarMenuItemProps {
     item: SidebarItem;
     depth: number;
     isCollapsed: boolean;
+    workspaceSlug: string | null;
     onNavigate: () => void;
 }
 
@@ -24,12 +24,16 @@ function SidebarMenuItem({
     item,
     depth,
     isCollapsed,
+    workspaceSlug,
     onNavigate,
 }: SidebarMenuItemProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     const hasChildren = Boolean(item.children?.length);
     const indent = depth > 0 ? 40 + (depth - 1) * 16 : undefined;
+    const itemHref = item.href
+        ? `/app/${workspaceSlug ?? ""}${item.href}`
+        : undefined;
 
     const labelClass = `truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ${
         isCollapsed ? "max-w-0 opacity-0" : "max-w-32 opacity-100"
@@ -43,7 +47,7 @@ function SidebarMenuItem({
     if (!hasChildren) {
         return (
             <Link
-                href={item.href ?? "#"}
+                href={itemHref ?? "#"}
                 onClick={onNavigate}
                 className={itemClass}
                 style={padding}
@@ -91,6 +95,7 @@ function SidebarMenuItem({
                                 item={child}
                                 depth={depth + 1}
                                 isCollapsed={isCollapsed}
+                                workspaceSlug={workspaceSlug}
                                 onNavigate={onNavigate}
                             />
                         ))}
@@ -106,6 +111,8 @@ export default function Sidebar({
     isOpen,
     onClose,
 }: SidebarProps) {
+    const workspaceSlug = usePage().props.auth.workspace?.slug ?? null;
+
     return (
         <>
             <div
@@ -120,28 +127,10 @@ export default function Sidebar({
                     isCollapsed ? "lg:w-20" : "lg:w-72"
                 } ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
             >
-                <div className="flex h-[4.25rem] items-center justify-between gap-3 border-b border-(--border) px-4">
-                    <Link
-                        href={dashboardIndex.url()}
-                        className={`flex min-w-0 items-center gap-3 ${
-                            isCollapsed ? "lg:justify-center" : ""
-                        }`}
-                    >
-                        <span className="grid size-9 flex-shrink-0 place-items-center rounded-xl bg-linear-to-br from-[var(--color-accent-start)] to-[var(--color-accent-end)] text-sm font-extrabold text-white">
-                            {appTheme.logoFallback}
-                        </span>
-                        <span
-                            className={`truncate overflow-hidden text-base font-semibold whitespace-nowrap text-(--text) transition-[max-width,opacity] duration-300 ${
-                                isCollapsed
-                                    ? "max-w-0 opacity-0"
-                                    : "max-w-48 opacity-100"
-                            }`}
-                        >
-                            {appTheme.brandName}
-                        </span>
-                    </Link>
+                <div className="relative flex h-[4.25rem] items-center justify-between gap-3 border-b border-(--border) px-4">
+                    <WorkspaceSwitcher isCollapsed={isCollapsed} />
                     <button
-                        className="grid size-8 place-items-center rounded-lg text-(--muted) transition hover:bg-(--panel-muted) hover:text-(--text) lg:hidden"
+                        className="grid size-8 shrink-0 place-items-center rounded-lg text-(--muted) transition hover:bg-(--panel-muted) hover:text-(--text) lg:hidden"
                         type="button"
                         onClick={onClose}
                         aria-label="Close sidebar"
@@ -156,6 +145,7 @@ export default function Sidebar({
                             item={item}
                             depth={0}
                             isCollapsed={isCollapsed}
+                            workspaceSlug={workspaceSlug}
                             onNavigate={onClose}
                         />
                     ))}

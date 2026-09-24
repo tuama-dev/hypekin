@@ -18,7 +18,7 @@ class AuthController extends Controller
     public function index()
     {
         if (Auth::check()) {
-            return redirect()->route('workspace.dashboard');
+            return redirect()->route('workspace.dashboard', ['workspace' => Auth::user()->workspaces()->first()]);
         }
 
         return Inertia::render('Application/Auth/Login');
@@ -36,11 +36,15 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        if ($user = Auth::user()) {
+        $user = Auth::user();
+
+        if ($user !== null) {
             $this->createWorkspace->ensure($user);
+
+            return redirect()->intended(route('workspace.dashboard', ['workspace' => $user->workspaces()->first()]));
         }
 
-        return redirect()->intended(route('workspace.dashboard'));
+        return redirect()->route('login');
     }
 
     public function logout(Request $request): Response

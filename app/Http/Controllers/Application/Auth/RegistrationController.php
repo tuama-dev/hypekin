@@ -16,7 +16,7 @@ class RegistrationController extends Controller
     public function index()
     {
         if (Auth::check()) {
-            return redirect()->route('workspace.dashboard');
+            return redirect()->route('workspace.dashboard', ['workspace' => Auth::user()->workspaces()->first()]);
         }
 
         return Inertia::render('Application/Auth/Registration');

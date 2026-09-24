@@ -32,6 +32,9 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 - A user owns **exactly one** workspace by default, guaranteed **at registration, at login, and at social sign-in** (`CreateWorkspaceAction::execute` / `::ensure`).
 - Ownership is modeled through a **role pivot** `workspace_user` (`role` column, `WorkspaceRole` enum: `owner` / `admin` / `editor` / `viewer`).
 - `Workspace` exposes `users()`, `owner()`, `admins()`, `editors()`, `viewers()` relationships. The future invite/join flow (making someone an `admin`/`editor`/`viewer` of *another* workspace) is **not built** — only personal workspaces exist.
+- Dashboard URL is `app/{workspace-slug}/dashboard` (`{workspace:slug}` binding, `EnsureWorkspaceMembership` middleware — 404s non-members) with `verified` enforced.
+- The authenticated **Sidebar header is a workspace switcher** (name + chevron → dropdown of your workspaces w/ role), sourcing shared props `auth.workspace`/`auth.workspaces`.
+- **Workspace settings** live at `app/{workspace-slug}/settings` (`workspace.settings` / `workspace.settings.update`), linked from the Sidebar so they always target the active workspace. Owners/admins can rename (name + unique slug); the form is a Wayfinder `PUT`. Read-only details (slug, your role, member count, created-on) are also shown.
 - Spatie roles/permissions were **completely removed** (package, config, tables migration, seeders, `HasRoles` trait). Workspace roles live only in the pivot.
 
 ### Frontend pages (Inertia)
@@ -72,7 +75,7 @@ POST /register  (RegisterRequest: fullname, unique email, password≥8 + confirm
   └─ Auth::login($user) + session()->regenerate()     // ★ auto-login
   └─ session: verification_sent_at = now()            // starts the 60s resend cooldown
   └─ redirect → verification.notice (VerifyEmail.tsx) + flash.success
-     Unverified access to /app/dashboard is blocked by `verified` middleware
+     Unverified access to /app/{workspace}/dashboard is blocked by `verified` middleware
                  → bounced back to verification.notice
 ```
 
@@ -90,7 +93,7 @@ GET /auth/{provider}/callback  → SocialAuthController@callback
            CreateWorkspaceAction::execute (role=owner)
   └─ Auth::login($user)  + session regenerate
   └─ CreateWorkspaceAction::ensure($user)  // safety net
-  └─ redirect → workspace.dashboard
+  └─ redirect → workspace.dashboard (`app/{workspace-slug}/dashboard`)
 ```
 
 ### 4.3 Login
@@ -100,7 +103,7 @@ POST /login  (AuthRequest: email, password, remember)
   ├─ Auth::attempt fails → back with error flash
   ├─ session()->regenerate()
   ├─ CreateWorkspaceAction::ensure($user)   // guarantees ≥1 workspace (owner)
-  └─ redirect()->intended(workspace.dashboard)
+  └─ redirect()->intended(workspace.dashboard) — first workspace's slug
      └─ unverified user → `verified` middleware → redirected to verification.notice
 ```
 
@@ -124,11 +127,11 @@ POST /app/logout → Auth::logout, session invalidate + regenerate token → Ine
 ## 5. Known gaps & technical debt
 
 1. ~~No auto-login after registration~~ **Resolved** — registration auto-logs the user in and redirects to `verification.notice` (VerifyEmail.tsx) with a 60s resend cooldown.
-2. **Tests can't run in this env** — `phpunit.xml` uses SQLite `:memory:` but local PHP has only `pdo_mysql`. Install `pdo_sqlite` OR point `phpunit.xml` at a MySQL test DB. (Paused by user — see §6.)
+2. **Tests can't run in this env** — `phpunit.xml` uses SQLite `:memory:` but local PHP has only `pdo_mysql`. **Workaround confirmed**: `DB_CONNECTION=mysql DB_DATABASE=lareact_test php artisan test` runs the whole suite (31/31 passing) against a throwaway MySQL DB. Officially defaulting phpunit.xml to MySQL is still pending user approval.
 3. ~~Stale test route~~ **Resolved** — `LoginTest` posts to `login.auth`.
 4. ~~`verified` middleware not applied~~ **Resolved** — dashboard is behind `verified`; unverified users land on `verification.notice`. Logout stays reachable for unverified users.
 5. **Pending migrations** — `workspaces` + `workspace_user` need `php artisan migrate` (MySQL) and a `queue:work` worker for verification emails; set `MAIL_MAILER=log` locally. (Deferred — §6.)
-6. **Dashboard is a stub** — no real workspace data shown. (Deferred — §6.)
+6. **Dashboard is a stub** — shows the current workspace name + role and the switcher, but no real workspace data. (Deferred — §6.)
 
 ---
 
@@ -138,7 +141,7 @@ Short-term (unblock basics & make it demoable):
 1. ~~Post-registration UX~~ **Done** — auto-login + redirect to `verification.notice` with a 60s resend countdown.
 2. ~~Verify enforcement~~ **Done** — `verified` middleware on `workspace.dashboard`.
 3. **Fix the test environment** — either `apt/brew` install `pdo_sqlite` or switch `phpunit.xml` to MySQL. (Stale `login.store` already fixed.) Then run `php artisan test --compact` and the CI scripts.
-4. **Real dashboard data** — pass the user's workspaces to the Dashboard page (inertia props), show workspace name/slug + your role (`owner` for now), and a logout-safe layout polish.
+4. ~~Workspace switcher + slug URLs~~ **Done** — `app/{workspace-slug}/dashboard`, Sidebar header switcher, `EnsureWorkspaceMembership`.
 5. **Apply pending migrations** — `php artisan migrate` (MySQL) + `php artisan queue:work` + `MAIL_MAILER=log` to see the verification email end-to-end.
 
 Product building blocks (after the above):

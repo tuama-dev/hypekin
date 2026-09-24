@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -22,6 +23,29 @@ class Workspace extends Model
 {
     /** @use HasFactory<WorkspaceFactory> */
     use HasFactory;
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
+     * Build a unique slug for a workspace name, skipping the given workspace.
+     */
+    public static function uniqueSlug(string $name, ?self $except = null): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+
+        for ($suffix = 2; self::query()
+            ->where('slug', $slug)
+            ->when($except !== null, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->exists(); $suffix++) {
+            $slug = "{$base}-{$suffix}";
+        }
+
+        return $slug;
+    }
 
     public function users(): BelongsToMany
     {

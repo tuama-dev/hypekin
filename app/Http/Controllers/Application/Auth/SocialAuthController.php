@@ -40,15 +40,15 @@ class SocialAuthController extends Controller
 
         $user = $this->socialAuthAction->execute($provider, $socialiteUser);
 
+        $this->createWorkspace->ensure($user);
+
         if (Auth::guest()) {
             Auth::login($user);
 
             request()->session()->regenerate();
-
-            $this->createWorkspace->ensure($user);
         }
 
-        return redirect()->intended(route('workspace.dashboard'));
+        return redirect()->intended(route('workspace.dashboard', ['workspace' => $user->workspaces()->first()]));
     }
 
     private function ensureProviderIsSupported(string $provider): void

@@ -9,7 +9,7 @@ import {
     Menu,
     User,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import AuthController from "@/actions/App/Http/Controllers/Application/Auth/AuthController";
 
 const menuIcons = {

@@ -10,6 +10,16 @@ export type User = {
     [key: string]: unknown; // This allows for additional properties...
 };
 
+export type Workspace = {
+    id: number;
+    name: string;
+    slug: string;
+    role: string;
+    [key: string]: unknown;
+};
+
 export type Auth = {
     user: User;
+    workspace: Workspace | null;
+    workspaces: Workspace[] | null;
 };

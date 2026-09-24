@@ -5,6 +5,7 @@ use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use App\Http\Controllers\Application\Auth\RegistrationController;
 use App\Http\Controllers\Application\Auth\SocialAuthController;
 use App\Http\Controllers\Application\DashboardController;
+use App\Http\Controllers\Application\WorkspaceSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('marketing'))->name('home');
@@ -22,9 +23,15 @@ Route::group([], function (): void {
     });
 
     Route::prefix('app')->middleware('auth')->group(function (): void {
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->middleware('verified')
+        Route::get('/{workspace:slug}/dashboard', [DashboardController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
             ->name('workspace.dashboard');
+        Route::get('/{workspace:slug}/settings', [WorkspaceSettingsController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.settings');
+        Route::put('/{workspace:slug}/settings', [WorkspaceSettingsController::class, 'update'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.settings.update');
         Route::post('/logout', [AuthController::class, 'logout'])->name('workspace.logout');
     });
 

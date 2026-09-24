@@ -18,7 +18,7 @@ class EmailVerificationController extends Controller
     public function notice(Request $request): RedirectResponse|Response
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('workspace.dashboard');
+            return redirect()->route('workspace.dashboard', ['workspace' => $request->user()->workspaces()->first()]);
         }
 
         return Inertia::render('Application/Auth/VerifyEmail');
@@ -31,7 +31,7 @@ class EmailVerificationController extends Controller
     {
         $request->fulfill();
 
-        return redirect()->route('workspace.dashboard');
+        return redirect()->route('workspace.dashboard', ['workspace' => $request->user()->workspaces()->first()]);
     }
 
     /**

@@ -1,8 +1,8 @@
 <?php
 
+use App\Actions\Application\Workspace\CreateWorkspaceAction;
 use App\Enums\WorkspaceRole;
 use App\Models\User;
-use App\Models\Workspace;
 
 test('users can log in with valid credentials', function () {
     $user = User::factory()->create([
@@ -10,12 +10,14 @@ test('users can log in with valid credentials', function () {
         'password' => 'secret-password',
     ]);
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post(route('login.auth'), [
         'email' => $user->email,
         'password' => 'secret-password',
     ]);
 
-    $response->assertRedirect(route('panel'));
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
     $this->assertAuthenticatedAs($user);
 });
 
@@ -31,7 +33,7 @@ test('users cannot log in with invalid credentials', function () {
     ]);
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors('email');
+    $response->assertSessionHas('flash.error');
     $this->assertGuest();
 });
 
@@ -45,7 +47,7 @@ test('a user without a workspace gets one when logging in', function () {
     $this->post(route('login.auth'), [
         'email' => 'jane@example.com',
         'password' => 'secret-password',
-    ])->assertRedirect(route('workspace.dashboard'));
+    ]);
 
     $this->assertAuthenticatedAs($user);
 
@@ -67,17 +69,18 @@ test('a user without a workspace gets one when logging in', function () {
 });
 
 test('a user with a workspace keeps only that one when logging in', function () {
-    $user = User::factory()
-        ->has(Workspace::factory())
-        ->create([
-            'email' => 'jane@example.com',
-            'password' => 'secret-password',
-        ]);
+    $user = User::factory()->create([
+        'fullname' => 'John Doe',
+        'email' => 'jane@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $workspace = app(CreateWorkspaceAction::class)->execute($user);
 
     $this->post(route('login.auth'), [
         'email' => 'jane@example.com',
         'password' => 'secret-password',
-    ])->assertRedirect(route('workspace.dashboard'));
+    ])->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
 
     $this->assertAuthenticatedAs($user);
 

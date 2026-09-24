@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Controllers\Application\Auth\EmailVerificationController;
+use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,17 +37,40 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $workspaces = $user?->workspaces;
+
+        $currentWorkspace = $request->route('workspace') instanceof Workspace
+            ? $workspaces?->firstWhere('id', $request->route('workspace')->getKey())
+            : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'workspace' => $currentWorkspace !== null
+                    ? [
+                        'id' => $currentWorkspace->getKey(),
+                        'name' => $currentWorkspace->name,
+                        'slug' => $currentWorkspace->slug,
+                        'role' => (string) $currentWorkspace->pivot->role,
+                    ]
+                    : null,
+                'workspaces' => $workspaces
+                    ?->map(fn (Workspace $workspace) => [
+                        'id' => $workspace->getKey(),
+                        'name' => $workspace->name,
+                        'slug' => $workspace->slug,
+                        'role' => (string) $workspace->pivot->role,
+                    ])
+                    ->values(),
             ],
             'flash' => [
                 'error' => $request->session()->get('flash.error'),
                 'success' => $request->session()->get('flash.success'),
             ],
-            'verification' => $request->user() !== null
+            'verification' => $user !== null
                 ? [
                     'resend_available_at' => EmailVerificationController::nextResendAvailableAt($request)?->toIso8601String(),
                 ]

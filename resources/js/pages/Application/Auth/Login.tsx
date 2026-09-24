@@ -1,11 +1,11 @@
 import { Form, Head, Link, usePage } from "@inertiajs/react";
 import { ArrowRight, Check, LockIcon, Mail, ShieldCheck } from "lucide-react";
 import AuthController from "@/actions/App/Http/Controllers/Application/Auth/AuthController";
-import { BrandMark } from "@/components/ui/brand-mark";
-import { GradientButton } from "@/components/ui/gradient-button";
-import { SocialButtons } from "@/components/ui/social-buttons";
-import { TextInput } from "@/components/ui/text-input";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BrandMark } from "@/components/ui/BrandMark";
+import { GradientButton } from "@/components/ui/GradientButton";
+import { SocialButtons } from "@/components/ui/SocialButtons";
+import { TextInput } from "@/components/ui/TextInput";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { themeConfig } from "@/config/theme";
 import CustomToaster from "@/components/ui/CustomToaster";
 import { toast } from "sonner";

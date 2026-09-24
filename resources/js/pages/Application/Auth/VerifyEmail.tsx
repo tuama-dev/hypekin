@@ -1,14 +1,15 @@
 import { Form, Head, Link, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Mail } from "lucide-react";
-import { BrandMark } from "@/components/ui/brand-mark";
-import { GradientButton } from "@/components/ui/gradient-button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BrandMark } from "@/components/ui/BrandMark";
+import { GradientButton } from "@/components/ui/GradientButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { appTheme } from "@/config/theme";
 import EmailVerificationController from "@/actions/App/Http/Controllers/Application/Auth/EmailVerificationController";
+import { index as dashboardIndex } from "@/actions/App/Http/Controllers/Application/DashboardController";
 
 export default function VerifyEmail() {
-    const { flash, verification } = usePage().props;
+    const { auth, flash, verification } = usePage().props;
 
     const resendAvailableAt = verification?.resend_available_at
         ? new Date(verification.resend_available_at)
@@ -100,12 +101,14 @@ export default function VerifyEmail() {
 
                     <p className="mt-8 inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-[var(--color-muted)]">
                         <ArrowLeft className="size-4" aria-hidden="true" />
-                        <Link
-                            href="/app/dashboard"
-                            className="text-[var(--color-primary)] hover:underline"
-                        >
-                            Back to dashboard
-                        </Link>
+                        {auth?.workspace ? (
+                            <Link
+                                href={dashboardIndex({ workspace: auth.workspace.slug }).url}
+                                className="text-[var(--color-primary)] hover:underline"
+                            >
+                                Back to dashboard
+                            </Link>
+                        ) : null}
                     </p>
                 </div>
             </main>
