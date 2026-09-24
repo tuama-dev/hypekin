@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['fullname', 'email', 'password'])]
+#[Fillable(['fullname', 'email', 'password', 'email_verified_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -38,7 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function workspaces(): BelongsToMany
     {
-        return $this->belongsToMany(Workspace::class)
+        return $this->belongsToMany(Workspace::class, 'workspace_user')
             ->withPivot('role')
             ->withTimestamps();
     }
