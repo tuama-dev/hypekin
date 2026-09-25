@@ -8,10 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class MediaController extends Controller
 {
@@ -22,6 +25,48 @@ class MediaController extends Controller
         'image/gif' => 'gif',
         'video/mp4' => 'mp4',
     ];
+
+    /**
+     * List the media library for a workspace.
+     *
+     * Uses first-class infinite scroll: the paginator normalizes merge and
+     * cursor metadata for the Inertia <InfiniteScroll> component. All loaded
+     * relationships are eager-loaded so the page never issues per-row queries.
+     */
+    public function index(Workspace $workspace): Response
+    {
+        return Inertia::render('Application/Media/Index', [
+            'media' => Inertia::scroll(
+                $workspace->media()
+                    ->withCount('posts as posted_count')
+                    ->with('uploadedBy')
+                    ->latest()
+                    ->orderByDesc('id')
+                    ->paginate(24)
+                    ->through(fn (Media $media): array => [
+                        'id' => $media->getKey(),
+                        'type' => [
+                            'value' => $media->type->value,
+                            'label' => $media->type->label(),
+                        ],
+                        'mime_type' => $media->mime_type,
+                        'size_bytes' => $media->size_bytes,
+                        'width' => $media->width,
+                        'height' => $media->height,
+                        'duration_seconds' => $media->duration_seconds,
+                        'status' => [
+                            'value' => $media->status->value,
+                            'label' => $media->status->label(),
+                        ],
+                        'created_at' => $media->created_at?->toIso8601String(),
+                        'url' => $media->publicUrl(),
+                        'attached_to_post' => $media->posted_count > 0,
+                        'posted_count' => $media->posted_count,
+                        'uploaded_by' => $media->uploadedBy?->name,
+                    ]),
+            ),
+        ]);
+    }
 
     /**
      * Prepare a direct browser → object storage upload.
@@ -82,20 +127,27 @@ class MediaController extends Controller
             return response()->json(['message' => 'Uploaded object was not found.'], 422);
         }
 
-        $media = Media::firstOrCreate(
+        $attributes = [
+            'uploaded_by_user_id' => $request->user()->getKey(),
+            'disk' => config('media.disk'),
+            'type' => $this->typeFor($validated['mime_type']),
+            'mime_type' => $validated['mime_type'],
+            'size_bytes' => $disk->size($validated['path']),
+            'width' => $validated['width'] ?? null,
+            'height' => $validated['height'] ?? null,
+            'duration_seconds' => null,
+            'status' => MediaStatus::Ready,
+        ];
+
+        $media = Media::withTrashed()->firstOrCreate(
             ['workspace_id' => $workspace->getKey(), 'path' => $validated['path']],
-            [
-                'uploaded_by_user_id' => $request->user()->getKey(),
-                'disk' => config('media.disk'),
-                'type' => $this->typeFor($validated['mime_type']),
-                'mime_type' => $validated['mime_type'],
-                'size_bytes' => $disk->size($validated['path']),
-                'width' => $validated['width'] ?? null,
-                'height' => $validated['height'] ?? null,
-                'duration_seconds' => null,
-                'status' => MediaStatus::Ready,
-            ],
+            $attributes,
         );
+
+        if ($media->trashed()) {
+            $media->restore();
+            $media->forceFill($attributes)->save();
+        }
 
         return response()->json([
             'media' => [
@@ -111,6 +163,32 @@ class MediaController extends Controller
                 'url' => $media->publicUrl(),
             ],
         ], 201);
+    }
+
+    /**
+     * Soft-delete a media row and remove its object bytes.
+     *
+     * Media still attached to a post can't be deleted — the post needs the
+     * public URL to publish (or re-publish) its content.
+     */
+    public function destroy(Workspace $workspace, Media $media): RedirectResponse
+    {
+        abort_unless($media->workspace_id === $workspace->getKey(), 404);
+
+        if ($media->posts()->exists()) {
+            return redirect()
+                ->route('workspace.media', ['workspace' => $workspace])
+                ->with('flash', [
+                    'error' => 'This file is attached to a post and cannot be deleted.',
+                ]);
+        }
+
+        Storage::disk($media->disk)->delete($media->path);
+        $media->delete();
+
+        return redirect()
+            ->route('workspace.media', ['workspace' => $workspace])
+            ->with('flash', ['success' => 'Media deleted.']);
     }
 
     /**

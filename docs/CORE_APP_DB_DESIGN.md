@@ -87,10 +87,19 @@ width, height integer, nullable
 duration_seconds integer, nullable video only
 status enum pending / ready / failed
 created_at / updated_at
+deleted_at nullable, soft deletes — the row survives history/audit while the object bytes are removed
+unique `(workspace_id, path)` — indexes the `complete` handshake and makes re-acknowledged uploads idempotent at the DB level
 
 Upload flow: `POST /media/intent` → presigned PUT (browser straight to object storage) →
 `POST /media/complete` (path exists check + whitelist mime + creates the row, `status: ready`).
 Publishing hands the platform the object's public GET URL (`Media::publicUrl()`), never the presigned PUT URL.
+
+Library + lifecycle:
+- `GET /media` lists `MediaStatus::Ready` rows (soft-deleted excluded) paginated 24/page for Inertia
+  `<InfiniteScroll>` (`Inertia::scroll`), eager-loading `uploadedBy` and a `posts` count — no N+1.
+- `DELETE /media/{media}` soft-deletes the row **and** removes the object bytes, but is refused
+  (error flash) while the file is attached to any post — posts need the public URL to publish/republish.
+- A re-acknowledged upload whose path matches a soft-deleted row restores it instead of duplicating it.
 
 ---
 

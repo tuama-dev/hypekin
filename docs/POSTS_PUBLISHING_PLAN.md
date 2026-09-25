@@ -234,6 +234,33 @@ Deviations from the plan (intentional):
 
 ---
 
+## 12. Media library (follow-on slice)
+
+Implemented and verified (76 tests green):
+
+- `Media` gains `SoftDeletes`; migration adds `deleted_at` + a unique `(workspace_id, path)` index
+  (indexes the `complete` handshake, DB-level upload idempotency).
+- `MediaController@index` — `Inertia::scroll()` paginating 24/page driving the first-class
+  `<InfiniteScroll>` component; eager-loads `uploadedBy` + a `posts` count (no N+1; regression-guarded
+  by a constant-query-count test).
+- `MediaController@destroy` — soft-deletes the row **and** removes the object bytes; refused with an
+  error flash while the file is attached to any post. `complete` restores a soft-deleted row when the
+  same path is re-acknowledged.
+- Routes `workspace.media` (GET) + `workspace.media.destroy` (DELETE).
+- React page `Application/Media/Index` — responsive image/video grid, type/size/dimensions/usage meta,
+  delete guarded by `ConfirmDialog` (disabled for attached files), "N files" header.
+- Sidebar/nav gains a **Media** item (`/media`).
+- Tests: `MediaTest.php` grows to 13 (scoping, 404s, pagination, delete + bytes, attached-block,
+  restore path, N+1 guard).
+
+Deviations (intentional):
+- Soft delete keeps the **row** but removes the **object bytes** — no live public URL after deletion,
+  no orphaned storage; recovery is a re-upload, not a restore.
+- `publicUrl()` on a soft-deleted row resolves but the object is gone, so the delete-block for
+  attached media is the real safety rail.
+
+---
+
 ## Deferred (explicitly out of scope this slice)
 
 - Video / carousel media.
@@ -241,3 +268,4 @@ Deviations from the plan (intentional):
 - Cancel-scheduled action.
 - Token-refresh flow.
 - LinkedIn / TikTok / X publishing.
+- Uploading directly from the media library (uploads currently originate in the post composer).

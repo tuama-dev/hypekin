@@ -1,6 +1,6 @@
-import { Form, Head, usePage } from "@inertiajs/react";
-import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import { Form, Head, usePage } from '@inertiajs/react';
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import {
     CalendarDays,
     CheckCircle2,
@@ -8,10 +8,10 @@ import {
     ShieldCheck,
     Tag,
     Users,
-} from "lucide-react";
-import AuthenticatedLayout from "@/components/Layout/AuthenticatedLayout";
-import { TextInput } from "@/components/ui/TextInput";
-import WorkspaceSettingsController from "@/actions/App/Http/Controllers/Application/WorkspaceSettingsController";
+} from 'lucide-react';
+import AuthenticatedLayout from '@/components/Layout/AuthenticatedLayout';
+import { TextInput } from '@/components/ui/TextInput';
+import WorkspaceSettingsController from '@/actions/App/Http/Controllers/Application/WorkspaceSettingsController';
 
 interface WorkspaceSettingsPageProps {
     memberCount: number;
@@ -67,10 +67,10 @@ export default function WorkspaceSettings({
                         Workspace settings
                     </h1>
                     <p className="mt-1 text-sm text-(--muted)">
-                        Manage how{" "}
+                        Manage how{' '}
                         <strong className="font-semibold">
                             {workspace.name}
-                        </strong>{" "}
+                        </strong>{' '}
                         works.
                     </p>
                 </header>
@@ -107,7 +107,7 @@ export default function WorkspaceSettings({
                                         required
                                         defaultValue={workspace.name}
                                         error={errors.name}
-                                        style={{ paddingLeft: "1rem" }}
+                                        style={{ paddingLeft: '1rem' }}
                                     />
                                     <div className="flex min-h-10 items-center gap-4">
                                         {wasSuccessful && (
@@ -122,11 +122,11 @@ export default function WorkspaceSettings({
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="ml-auto rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="ml-auto rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {processing
-                                                ? "Saving..."
-                                                : "Save changes"}
+                                                ? 'Saving...'
+                                                : 'Save changes'}
                                         </button>
                                     </div>
                                 </>

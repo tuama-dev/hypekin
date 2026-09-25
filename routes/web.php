@@ -63,6 +63,12 @@ Route::group([], function (): void {
         Route::post('/{workspace:slug}/media/complete', [MediaController::class, 'complete'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.media.complete');
+        Route::get('/{workspace:slug}/media', [MediaController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.media');
+        Route::delete('/{workspace:slug}/media/{media}', [MediaController::class, 'destroy'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.media.destroy');
         Route::post('/logout', [AuthController::class, 'logout'])->name('workspace.logout');
     });
 

@@ -82,7 +82,7 @@ export default function PostsIndex({ posts }: PostsIndexPageProps) {
         <AuthenticatedLayout>
             <Head title="Posts" />
 
-            <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-8 sm:px-6">
+            <div className="flex w-full flex-col px-4 py-8 sm:px-6">
                 <header className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-extrabold tracking-tight text-(--text)">

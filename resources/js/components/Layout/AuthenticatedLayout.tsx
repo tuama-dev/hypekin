@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { useState } from "react";
-import Navbar from "@/components/Layout/Navbar";
-import Sidebar from "@/components/Layout/Sidebar";
-import { appTheme } from "@/config/theme";
-import CustomToaster from "@/components/ui/CustomToaster";
+import type { ReactNode } from 'react';
+import { useState } from 'react';
+import Navbar from '@/components/Layout/Navbar';
+import Sidebar from '@/components/Layout/Sidebar';
+import { appTheme } from '@/config/theme';
+import CustomToaster from '@/components/ui/CustomToaster';
 
 interface Props {
     children: ReactNode;
@@ -14,7 +14,7 @@ export default function AuthenticatedLayout({ children }: Props) {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     function toggleSidebar() {
-        if (window.matchMedia("(max-width: 1023px)").matches) {
+        if (window.matchMedia('(max-width: 1023px)').matches) {
             setIsMobileSidebarOpen((current) => !current);
             return;
         }
@@ -27,7 +27,7 @@ export default function AuthenticatedLayout({ children }: Props) {
             className="min-h-svh bg-(--dashboard-background) font-sans text-(--text)"
             style={
                 {
-                    "--accent-gradient": appTheme.accentGradient,
+                    '--accent-gradient': appTheme.accentGradient,
                 } as React.CSSProperties
             }
         >
