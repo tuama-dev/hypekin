@@ -3,16 +3,17 @@
 namespace App\Models;
 
 use App\Enums\WorkspaceRole;
-use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $name
  * @property string $slug
  * @property Carbon|null $created_at
@@ -21,8 +22,7 @@ use Illuminate\Support\Str;
 #[Fillable(['name', 'slug'])]
 class Workspace extends Model
 {
-    /** @use HasFactory<WorkspaceFactory> */
-    use HasFactory;
+    use HasFactory, HasUlids;
 
     public function getRouteKeyName(): string
     {
@@ -52,6 +52,21 @@ class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_user')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(Media::class);
     }
 
     public function owner(): BelongsToMany

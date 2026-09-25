@@ -5,6 +5,9 @@ use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use App\Http\Controllers\Application\Auth\RegistrationController;
 use App\Http\Controllers\Application\Auth\SocialAuthController;
 use App\Http\Controllers\Application\DashboardController;
+use App\Http\Controllers\Application\MediaController;
+use App\Http\Controllers\Application\PostController;
+use App\Http\Controllers\Application\SocialAccountController;
 use App\Http\Controllers\Application\WorkspaceSettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +23,9 @@ Route::group([], function (): void {
     Route::prefix('auth')->group(function (): void {
         Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('auth.social.redirect');
         Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])->name('auth.social.callback');
+        Route::get('/social-accounts/{platform}/callback', [SocialAccountController::class, 'callback'])
+            ->middleware('auth')
+            ->name('workspace.accounts.callback');
     });
 
     Route::prefix('app')->middleware('auth')->group(function (): void {
@@ -32,6 +38,31 @@ Route::group([], function (): void {
         Route::put('/{workspace:slug}/settings', [WorkspaceSettingsController::class, 'update'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.settings.update');
+        Route::get('/{workspace:slug}/accounts', [SocialAccountController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.accounts');
+        Route::get('/{workspace:slug}/accounts/{platform}/connect', [SocialAccountController::class, 'connect'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.accounts.connect');
+        Route::delete('/{workspace:slug}/accounts/{account}', [SocialAccountController::class, 'destroy'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.accounts.destroy');
+
+        Route::get('/{workspace:slug}/posts', [PostController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.posts');
+        Route::get('/{workspace:slug}/posts/create', [PostController::class, 'create'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.posts.create');
+        Route::post('/{workspace:slug}/posts', [PostController::class, 'store'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.posts.store');
+        Route::post('/{workspace:slug}/media/intent', [MediaController::class, 'intent'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.media.intent');
+        Route::post('/{workspace:slug}/media/complete', [MediaController::class, 'complete'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.media.complete');
         Route::post('/logout', [AuthController::class, 'logout'])->name('workspace.logout');
     });
 

@@ -15,6 +15,7 @@
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "league/flysystem-aws-s3-v3": "^3.35",
         "livewire/livewire": "^4.4"
     },
     "require-dev": {

@@ -47,10 +47,34 @@ return [
         'redirect' => env('X_REDIRECT_URI'),
     ],
 
-    'linkedin-openid' => [
-        'client_id' => env('LINKEDIN_CLIENT_ID'),
-        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
-        'redirect' => env('LINKEDIN_REDIRECT_URI'),
+    'tiktok-login' => [
+        'client_id' => env('TIKTOK_CLIENT_ID'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+        'redirect' => env('TIKTOK_LOGIN_REDIRECT_URI'),
+    ],
+
+    'linkedin' => [
+        'client_id' => env('LINKEDIN_SHARE_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_SHARE_CLIENT_SECRET'),
+        'redirect' => env('LINKEDIN_SHARE_REDIRECT_URI'),
+    ],
+
+    'facebook-posting' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_SHARE_REDIRECT_URI'),
+    ],
+
+    'instagram' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('INSTAGRAM_SHARE_REDIRECT_URI'),
+    ],
+
+    'tiktok' => [
+        'client_id' => env('TIKTOK_CLIENT_ID'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+        'redirect' => env('TIKTOK_REDIRECT_URI'),
     ],
 
     'google' => [

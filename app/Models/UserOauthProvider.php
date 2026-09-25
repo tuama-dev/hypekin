@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Database\Factories\UserOauthProviderFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $user_id
+ * @property string $id
+ * @property string $user_id
  * @property string $provider_name
  * @property string $provider_id
  * @property string|null $token
@@ -23,8 +23,7 @@ use Illuminate\Support\Carbon;
  */
 class UserOauthProvider extends Model
 {
-    /** @use HasFactory<UserOauthProviderFactory> */
-    use HasFactory;
+    use HasFactory, HasUlids;
 
     protected $fillable = [
         'user_id',

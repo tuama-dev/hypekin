@@ -12,7 +12,7 @@ use Throwable;
 
 class SocialAuthController extends Controller
 {
-    private const array SUPPORTED_PROVIDERS = ['facebook', 'x', 'linkedin-openid', 'google'];
+    private const array SUPPORTED_PROVIDERS = ['facebook', 'x', 'tiktok-login', 'google'];
 
     public function __construct(
         private readonly SocialAuthAction $socialAuthAction,

@@ -41,6 +41,30 @@ test('a new user can register with a social provider', function () {
     ]);
 });
 
+test('a new user can register with tiktok-login and is auto-verified', function () {
+    Socialite::fake('tiktok-login', SocialiteUser::fake([
+        'id' => 'tiktok-open-id-123',
+        'name' => 'Tik Creator',
+        'email' => null,
+    ]));
+
+    $response = $this->get(route('auth.social.callback', ['provider' => 'tiktok-login']));
+
+    $this->assertAuthenticated();
+
+    $user = User::query()->where('email', 'tiktok-login-tiktok-open-id-123@tiktok-login.invalid')->firstOrFail();
+    $workspace = $user->workspaces()->firstOrFail();
+
+    $response->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
+
+    expect($user->hasVerifiedEmail())->toBeTrue();
+
+    $this->assertDatabaseHas('user_oauth_providers', [
+        'provider_name' => 'tiktok-login',
+        'provider_id' => 'tiktok-open-id-123',
+    ]);
+});
+
 test('a new social user gets a personal workspace', function () {
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-321',

@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('workspace_user', function (Blueprint $table) {
-            $table->foreignUlid('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
-            $table->string('role');
+        Schema::create('post_media', function (Blueprint $table) {
+            $table->foreignUlid('post_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('media_id')->constrained()->cascadeOnDelete();
+            $table->unsignedInteger('position');
             $table->timestamps();
 
-            $table->primary(['workspace_id', 'user_id']);
+            $table->primary(['post_id', 'media_id']);
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('workspace_user');
+        Schema::dropIfExists('post_media');
     }
 };

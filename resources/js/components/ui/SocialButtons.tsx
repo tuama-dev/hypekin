@@ -1,7 +1,7 @@
 import type { ReactElement, SVGProps } from "react";
 import SocialAuthController from "@/actions/App/Http/Controllers/Application/Auth/SocialAuthController";
 
-type SocialProvider = "facebook" | "x" | "linkedin-openid" | "google";
+type SocialProvider = "facebook" | "x" | "tiktok-login" | "google";
 
 type ProviderConfig = {
     provider: SocialProvider;
@@ -35,7 +35,7 @@ function XIcon(props: SVGProps<SVGSVGElement>): ReactElement {
     );
 }
 
-function LinkedInIcon(props: SVGProps<SVGSVGElement>): ReactElement {
+function TikTokIcon(props: SVGProps<SVGSVGElement>): ReactElement {
     return (
         <svg
             viewBox="0 0 24 24"
@@ -43,7 +43,7 @@ function LinkedInIcon(props: SVGProps<SVGSVGElement>): ReactElement {
             aria-hidden="true"
             {...props}
         >
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.51 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.88c.28 0 .55.05.8.13V9.05a6.34 6.34 0 0 0-.8-.05 6.34 6.34 0 1 0 6.34 6.34V9.51A8.16 8.16 0 0 0 19.59 6.69z" />
         </svg>
     );
 }
@@ -75,7 +75,7 @@ const providers: ProviderConfig[] = [
     { provider: "google", label: "Google", icon: GoogleIcon },
     { provider: "facebook", label: "Facebook", icon: FacebookIcon },
     { provider: "x", label: "X", icon: XIcon },
-    { provider: "linkedin-openid", label: "LinkedIn", icon: LinkedInIcon },
+    { provider: "tiktok-login", label: "TikTok", icon: TikTokIcon },
 ];
 
 export function SocialButtons() {

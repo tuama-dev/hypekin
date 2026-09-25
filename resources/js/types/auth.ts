@@ -1,5 +1,5 @@
 export type User = {
-    id: number;
+    id: string;
     name: string;
     fullname: string;
     email: string;
@@ -11,7 +11,7 @@ export type User = {
 };
 
 export type Workspace = {
-    id: number;
+    id: string;
     name: string;
     slug: string;
     role: string;
