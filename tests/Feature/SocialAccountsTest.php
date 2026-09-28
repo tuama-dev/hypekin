@@ -17,6 +17,10 @@ test('the accounts page renders the connected accounts of a member', function ()
     $workspace = app(CreateWorkspaceAction::class)->ensure($user);
     $account = SocialAccount::factory()->create(['workspace_id' => $workspace->id]);
 
+    foreach (Platform::cases() as $platform) {
+        Config::set('services.'.$platform->socialiteDriver().'.client_id', null);
+    }
+
     $this->actingAs($user)
         ->get(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertOk()
@@ -31,6 +35,54 @@ test('the accounts page renders the connected accounts of a member', function ()
             ->where('canConnect', false));
 
     expect($account->toArray())->not->toHaveKey('access_token');
+});
+
+test('a connected account with a lapsed token is surfaced as expired', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    SocialAccount::factory()->create([
+        'workspace_id' => $workspace->id,
+        'token_expires_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('workspace.accounts', ['workspace' => $workspace]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Application/SocialAccounts/Index')
+            ->where('accounts.0.status.value', 'expired')
+            ->where('accounts.0.status.label', 'Expired'));
+});
+
+test('a revoked account with a lapsed token stays revoked, never expired', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    $account = SocialAccount::factory()->create([
+        'workspace_id' => $workspace->id,
+        'status' => SocialAccountStatus::Revoked,
+        'access_token' => null,
+        'refresh_token' => null,
+        'token_expires_at' => now()->subDays(30),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('workspace.accounts', ['workspace' => $workspace]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Application/SocialAccounts/Index')
+            ->where('accounts.0.status.value', 'revoked'));
+
+    expect($account->effectiveStatus())->toBe(SocialAccountStatus::Revoked);
+});
+
+test('the effective status of a connected account stays connected while the token is valid', function () {
+    $account = SocialAccount::factory()->create([
+        'token_expires_at' => now()->addDays(5),
+    ]);
+
+    expect($account->effectiveStatus())->toBe(SocialAccountStatus::Connected);
 });
 
 test('the accounts page returns 404 for a user who is not a member', function () {
@@ -61,6 +113,8 @@ test('the connect route redirects to LinkedIn and remembers the workspace', func
 test('the connect route is blocked when LinkedIn is not configured', function () {
     $user = User::factory()->create();
     $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    Config::set('services.linkedin.client_id', null);
 
     $this->actingAs($user)
         ->get(route('workspace.accounts.connect', ['workspace' => $workspace, 'platform' => 'linkedin']))

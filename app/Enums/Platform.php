@@ -20,6 +20,16 @@ enum Platform: string
     }
 
     /**
+     * The platforms that can be published to from the composer.
+     *
+     * @return list<self>
+     */
+    public static function publishable(): array
+    {
+        return [self::Facebook, self::Instagram, self::LinkedIn, self::Tiktok];
+    }
+
+    /**
      * The Socialite driver used to connect this platform.
      */
     public function socialiteDriver(): string
@@ -40,7 +50,7 @@ enum Platform: string
     public function scopes(): array
     {
         return match ($this) {
-            self::LinkedIn => ['w_member_social'],
+            self::LinkedIn => ['r_liteprofile', 'w_member_social'],
             self::Facebook => ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
             self::Instagram => ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts', 'instagram_basic', 'instagram_content_publish'],
             self::Tiktok => ['user.info.basic', 'video.publish'],

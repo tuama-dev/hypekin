@@ -62,7 +62,7 @@ class MediaController extends Controller
                         'url' => $media->publicUrl(),
                         'attached_to_post' => $media->posted_count > 0,
                         'posted_count' => $media->posted_count,
-                        'uploaded_by' => $media->uploadedBy?->name,
+                        'uploaded_by' => $media->uploadedBy?->fullname,
                     ]),
             ),
         ]);

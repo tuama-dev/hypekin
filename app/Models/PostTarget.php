@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\PostTargetStatus;
+use App\Observers\PostTargetObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -15,8 +18,10 @@ use Illuminate\Support\Carbon;
  * @property string $post_id
  * @property string $social_account_id
  * @property string $caption
+ * @property string|null $title
  * @property PostTargetStatus $status
  * @property string|null $platform_post_id
+ * @property string|null $platform_upload_id
  * @property Carbon|null $published_at
  * @property string|null $error_message
  * @property int $retry_count
@@ -27,12 +32,15 @@ use Illuminate\Support\Carbon;
     'post_id',
     'social_account_id',
     'caption',
+    'title',
     'status',
     'platform_post_id',
+    'platform_upload_id',
     'published_at',
     'error_message',
     'retry_count',
 ])]
+#[ObservedBy(PostTargetObserver::class)]
 class PostTarget extends Model
 {
     use HasFactory, HasUlids;
@@ -45,6 +53,11 @@ class PostTarget extends Model
     public function socialAccount(): BelongsTo
     {
         return $this->belongsTo(SocialAccount::class);
+    }
+
+    public function metrics(): HasMany
+    {
+        return $this->hasMany(PostMetric::class);
     }
 
     /**

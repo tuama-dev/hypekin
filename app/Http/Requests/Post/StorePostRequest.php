@@ -31,6 +31,7 @@ class StorePostRequest extends FormRequest
 
         return [
             'caption' => ['required', 'string', 'max:3000'],
+            'title' => ['nullable', 'string', 'max:22'],
             'targets' => ['required', 'array', 'min:1'],
             'targets.*' => [
                 'required',
@@ -65,7 +66,7 @@ class StorePostRequest extends FormRequest
                 $hasInvalidAccount = collect($this->input('targets'))
                     ->contains(fn (string $accountId): bool => ! $accounts->has($accountId)
                         || $accounts[$accountId]->status !== SocialAccountStatus::Connected
-                        || ! in_array($accounts[$accountId]->platform, [Platform::Facebook, Platform::Instagram], true));
+                        || ! in_array($accounts[$accountId]->platform, Platform::publishable(), true));
 
                 if ($hasInvalidAccount) {
                     $validator->errors()->add('targets', 'One or more selected accounts can not be published to.');
@@ -73,11 +74,18 @@ class StorePostRequest extends FormRequest
                     return;
                 }
 
-                $targetsInstagram = collect($this->input('targets'))
-                    ->contains(fn (string $accountId): bool => $accounts[$accountId]->platform === Platform::Instagram);
+                $targetsRequiringMedia = collect($this->input('targets'))
+                    ->contains(fn (string $accountId): bool => in_array($accounts[$accountId]->platform, [Platform::Instagram, Platform::Tiktok], true));
 
-                if ($targetsInstagram && $this->input('media_id') === null) {
-                    $validator->errors()->add('media_id', 'Instagram posts require an image.');
+                if ($targetsRequiringMedia && $this->input('media_id') === null) {
+                    $validator->errors()->add('media_id', 'Instagram and TikTok posts require an image.');
+                }
+
+                $targetsTiktok = collect($this->input('targets'))
+                    ->contains(fn (string $accountId): bool => $accounts[$accountId]->platform === Platform::Tiktok);
+
+                if ($targetsTiktok && ! $this->filled('title')) {
+                    $validator->errors()->add('title', 'TikTok posts require a title.');
                 }
             },
         ];

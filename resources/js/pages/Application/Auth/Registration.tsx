@@ -1,12 +1,12 @@
-import { Form, Head, Link, usePage } from "@inertiajs/react";
-import { ArrowRight, Check, LockIcon, Mail, User } from "lucide-react";
-import { BrandMark } from "@/components/ui/BrandMark";
-import { GradientButton } from "@/components/ui/GradientButton";
-import { SocialButtons } from "@/components/ui/SocialButtons";
-import { TextInput } from "@/components/ui/TextInput";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { themeConfig } from "@/config/theme";
-import RegistrationController from "@/actions/App/Http/Controllers/Application/Auth/RegistrationController";
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { ArrowRight, Check, LockIcon, Mail, User } from 'lucide-react';
+import { BrandMark } from '@/components/ui/BrandMark';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { SocialButtons } from '@/components/ui/SocialButtons';
+import { TextInput } from '@/components/ui/TextInput';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { themeConfig } from '@/config/theme';
+import RegistrationController from '@/actions/App/Http/Controllers/Application/Auth/RegistrationController';
 
 export default function Registration() {
     const { flash } = usePage().props;
@@ -132,10 +132,10 @@ export default function Registration() {
                                         disabled={processing}
                                     >
                                         {processing ? (
-                                            "Creating account..."
+                                            'Creating account...'
                                         ) : (
                                             <span className="inline-flex items-center justify-center gap-2">
-                                                Create account{" "}
+                                                Create account{' '}
                                                 <ArrowRight
                                                     size={17}
                                                     strokeWidth={2.5}

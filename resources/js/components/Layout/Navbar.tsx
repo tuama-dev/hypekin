@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
-import { Bell, Menu, PanelLeftClose, PanelRightClose } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelRightClose } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import NotificationBell from '@/components/Layout/NotificationBell';
 import { getActiveItem } from '@/config/navigation/application';
 
 interface NavbarProps {
@@ -49,13 +50,7 @@ export default function Navbar({
                 )}
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
-                <button
-                    className="grid size-9 place-items-center rounded-lg text-(--muted) transition hover:bg-(--panel-muted) hover:text-(--text)"
-                    type="button"
-                    aria-label="Notifications"
-                >
-                    <Bell />
-                </button>
+                <NotificationBell />
                 <ThemeToggle />
             </div>
         </header>

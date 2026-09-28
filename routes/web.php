@@ -4,8 +4,10 @@ use App\Http\Controllers\Application\Auth\AuthController;
 use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use App\Http\Controllers\Application\Auth\RegistrationController;
 use App\Http\Controllers\Application\Auth\SocialAuthController;
+use App\Http\Controllers\Application\CalendarController;
 use App\Http\Controllers\Application\DashboardController;
 use App\Http\Controllers\Application\MediaController;
+use App\Http\Controllers\Application\NotificationController;
 use App\Http\Controllers\Application\PostController;
 use App\Http\Controllers\Application\SocialAccountController;
 use App\Http\Controllers\Application\WorkspaceSettingsController;
@@ -54,9 +56,18 @@ Route::group([], function (): void {
         Route::get('/{workspace:slug}/posts/create', [PostController::class, 'create'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.posts.create');
+        Route::get('/{workspace:slug}/posts/{post}', [PostController::class, 'show'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.posts.show');
         Route::post('/{workspace:slug}/posts', [PostController::class, 'store'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.posts.store');
+        Route::patch('/{workspace:slug}/posts/{post}/scheduled_at', [PostController::class, 'reschedule'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.posts.reschedule');
+        Route::get('/{workspace:slug}/calendar', [CalendarController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.calendar');
         Route::post('/{workspace:slug}/media/intent', [MediaController::class, 'intent'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.media.intent');
@@ -69,6 +80,15 @@ Route::group([], function (): void {
         Route::delete('/{workspace:slug}/media/{media}', [MediaController::class, 'destroy'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.media.destroy');
+        Route::get('/{workspace:slug}/notifications', [NotificationController::class, 'index'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.notifications.index');
+        Route::post('/{workspace:slug}/notifications/read-all', [NotificationController::class, 'readAll'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.notifications.read-all');
+        Route::patch('/{workspace:slug}/notifications/{notification}', [NotificationController::class, 'read'])
+            ->middleware(['verified', 'workspace'])
+            ->name('workspace.notifications.read');
         Route::post('/logout', [AuthController::class, 'logout'])->name('workspace.logout');
     });
 

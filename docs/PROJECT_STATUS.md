@@ -7,37 +7,40 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 
 ## 1. Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Laravel 13 (PHP 8.5) |
-| Frontend | Inertia v3 + React 19 + TypeScript, Vite 8 (`vite-plus`), Tailwind 4 |
-| Routing glue | Laravel Wayfinder (typed route/controller functions) |
-| Auth | Native Laravel sessions (`web` guard), Laravel Socialite (google, facebook, x, linkedin-openid) |
-| Email | Laravel verification flow, queued (`QUEUE_CONNECTION=database`) |
-| Tests | Pest 5 (feature tests) |
-| DB | MySQL (local). **Note:** `phpunit.xml` targets SQLite `:memory:` — tests can't run in this env (no `pdo_sqlite`). |
-| Lint/CI | Pint, PHPStan (larastan), `tsc --noEmit`, `vp check` |
+| Layer        | Technology                                                                                                        |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Framework    | Laravel 13 (PHP 8.5)                                                                                              |
+| Frontend     | Inertia v3 + React 19 + TypeScript, Vite 8 (`vite-plus`), Tailwind 4                                              |
+| Routing glue | Laravel Wayfinder (typed route/controller functions)                                                              |
+| Auth         | Native Laravel sessions (`web` guard), Laravel Socialite (google, facebook, x, linkedin-openid)                   |
+| Email        | Laravel verification flow, queued (`QUEUE_CONNECTION=database`)                                                   |
+| Tests        | Pest 5 (feature tests)                                                                                            |
+| DB           | MySQL (local). **Note:** `phpunit.xml` targets SQLite `:memory:` — tests can't run in this env (no `pdo_sqlite`). |
+| Lint/CI      | Pint, PHPStan (larastan), `tsc --noEmit`, `vp check`                                                              |
 
 ---
 
 ## 2. What's done (progress)
 
 ### Auth & accounts
+
 - Email + password registration (validated via `RegisterRequest`), login, logout.
 - Social login with Google / Facebook / X / LinkedIn (OAuth via Socialite), account linking for authenticated users, provider whitelist, placeholder email for providers that don't return one.
 - **Email verification** for email registration: registration auto-logs in → `Registered` event → queued `SendEmailVerificationNotification` listener → `VerifyEmail` mail (queue); notice/verify/resend routes + pages; 60s resend cooldown with live countdown (`config/verification.php`); `flash.success`/`flash.error`. `User` implements `MustVerifyEmail` and dashboard is behind `verified`.
 - Email verification is **not** (yet) enforced on the dashboard route.
 
 ### Workspaces (tenant per user)
+
 - A user owns **exactly one** workspace by default, guaranteed **at registration, at login, and at social sign-in** (`CreateWorkspaceAction::execute` / `::ensure`).
 - Ownership is modeled through a **role pivot** `workspace_user` (`role` column, `WorkspaceRole` enum: `owner` / `admin` / `editor` / `viewer`).
-- `Workspace` exposes `users()`, `owner()`, `admins()`, `editors()`, `viewers()` relationships. The future invite/join flow (making someone an `admin`/`editor`/`viewer` of *another* workspace) is **not built** — only personal workspaces exist.
+- `Workspace` exposes `users()`, `owner()`, `admins()`, `editors()`, `viewers()` relationships. The future invite/join flow (making someone an `admin`/`editor`/`viewer` of _another_ workspace) is **not built** — only personal workspaces exist.
 - Dashboard URL is `app/{workspace-slug}/dashboard` (`{workspace:slug}` binding, `EnsureWorkspaceMembership` middleware — 404s non-members) with `verified` enforced.
 - The authenticated **Sidebar header is a workspace switcher** (name + chevron → dropdown of your workspaces w/ role), sourcing shared props `auth.workspace`/`auth.workspaces`.
 - **Workspace settings** live at `app/{workspace-slug}/settings` (`workspace.settings` / `workspace.settings.update`), linked from the Sidebar so they always target the active workspace. Owners/admins can rename (name + unique slug); the form is a Wayfinder `PUT`. Read-only details (slug, your role, member count, created-on) are also shown.
 - Spatie roles/permissions were **completely removed** (package, config, tables migration, seeders, `HasRoles` trait). Workspace roles live only in the pivot.
 
 ### Frontend pages (Inertia)
+
 - `Welcome` (marketing) and a Blade `marketing` view for `/`.
 - `Application/Auth/*`: `Login`, `Registration`, `VerifyEmail`.
 - `Application/Dashboard` (+ `AuthenticatedLayout` + `Navbar` with logout).
@@ -47,13 +50,13 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 
 ## 3. Database schema (current)
 
-| Table | Purpose |
-|---|---|
-| `users` | `fullname`, `email`, `password`, `email_verified_at`, remember token |
+| Table                  | Purpose                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `users`                | `fullname`, `email`, `password`, `email_verified_at`, remember token           |
 | `user_oauth_providers` | OAuth provider → user linkage (`provider_name`, `provider_id`, tokens, avatar) |
-| `workspaces` | `name`, `slug` (unique) — no owner FK anymore |
-| `workspace_user` | membership pivot: `workspace_id`, `user_id`, `role`, unique pair |
-| `jobs` / `cache` | queue + cache infrastructure |
+| `workspaces`           | `name`, `slug` (unique) — no owner FK anymore                                  |
+| `workspace_user`       | membership pivot: `workspace_id`, `user_id`, `role`, unique pair               |
+| `jobs` / `cache`       | queue + cache infrastructure                                                   |
 
 Enum: `App\Enums\WorkspaceRole` — `owner`, `admin`, `editor`, `viewer`.
 
@@ -62,6 +65,7 @@ Enum: `App\Enums\WorkspaceRole` — `owner`, `admin`, `editor`, `viewer`.
 ## 4. Complete current flows
 
 ### 4.1 Email registration
+
 ```
 POST /register  (RegisterRequest: fullname, unique email, password≥8 + confirmed)
   RegistrationController@store
@@ -80,6 +84,7 @@ POST /register  (RegisterRequest: fullname, unique email, password≥8 + confirm
 ```
 
 ### 4.2 Social registration / sign-in
+
 ```
 GET /auth/{provider}/redirect  → provider OAuth
 GET /auth/{provider}/callback  → SocialAuthController@callback
@@ -97,6 +102,7 @@ GET /auth/{provider}/callback  → SocialAuthController@callback
 ```
 
 ### 4.3 Login
+
 ```
 POST /login  (AuthRequest: email, password, remember)
   AuthController@auth
@@ -108,16 +114,19 @@ POST /login  (AuthRequest: email, password, remember)
 ```
 
 ### 4.4 Email verification
+
 ```
 GET  /email/verify                          → notice page (VerifyEmail.tsx) unless already verified
 GET  /email/verify/{id}/{hash}   (signed)   → EmailVerificationController@verify → fulfill → dashboard
 POST /email/verification-notification       → resend, throttled + 60s cooldown (session-tracked)
 ```
+
 Resend cooldown: after a link is sent, resend is locked for `config('verification.resend_cooldown')` (60s)
 seconds. The notice page counts down from the shared `verification.resend_available_at` prop and
 re-enables the button when the timer ends; the server validates the cooldown independently.
 
 ### 4.5 Logout
+
 ```
 POST /app/logout → Auth::logout, session invalidate + regenerate token → Inertia::location(home)
 ```
@@ -138,17 +147,14 @@ POST /app/logout → Auth::logout, session invalidate + regenerate token → Ine
 ## 6. Suggested next steps (focus on the app; admin later)
 
 Short-term (unblock basics & make it demoable):
+
 1. ~~Post-registration UX~~ **Done** — auto-login + redirect to `verification.notice` with a 60s resend countdown.
 2. ~~Verify enforcement~~ **Done** — `verified` middleware on `workspace.dashboard`.
 3. **Fix the test environment** — either `apt/brew` install `pdo_sqlite` or switch `phpunit.xml` to MySQL. (Stale `login.store` already fixed.) Then run `php artisan test --compact` and the CI scripts.
 4. ~~Workspace switcher + slug URLs~~ **Done** — `app/{workspace-slug}/dashboard`, Sidebar header switcher, `EnsureWorkspaceMembership`.
 5. **Apply pending migrations** — `php artisan migrate` (MySQL) + `php artisan queue:work` + `MAIL_MAILER=log` to see the verification email end-to-end.
 
-Product building blocks (after the above):
-6. **Define what lives *inside* a workspace** — this is the core product decision. Pick the first vertical slice (e.g. projects/customers/files whatever the app domain is), then scaffold models + migration + CRUD with the existing Action/pivot conventions.
-7. **Workspace UX** — invite/join flow so a user becomes `admin`/`editor`/`viewer` of someone else's workspace (posts the foundation in `docs/admins-roles-permissions-plan.md` §3, but that's tenant-level; an invite system is separate). Keep scoped to the app.
-8. **Payments/plans gating multi-workspaces** — the eventual "own 1, subscribe for more" story. Don't build until the core product slice exists.
-9. **Keep the codebase conventions**: Actions in `app/Actions/Application/**`, `execute()` methods, `#[Fillable]` attributes, enum-driven roles, Pest feature tests, Wayfinder typed routes, Pint + PHPStan + `tsc`.
+Product building blocks (after the above): 6. **Define what lives _inside_ a workspace** — this is the core product decision. Pick the first vertical slice (e.g. projects/customers/files whatever the app domain is), then scaffold models + migration + CRUD with the existing Action/pivot conventions. 7. **Workspace UX** — invite/join flow so a user becomes `admin`/`editor`/`viewer` of someone else's workspace (posts the foundation in `docs/admins-roles-permissions-plan.md` §3, but that's tenant-level; an invite system is separate). Keep scoped to the app. 8. **Payments/plans gating multi-workspaces** — the eventual "own 1, subscribe for more" story. Don't build until the core product slice exists. 9. **Keep the codebase conventions**: Actions in `app/Actions/Application/**`, `execute()` methods, `#[Fillable]` attributes, enum-driven roles, Pest feature tests, Wayfinder typed routes, Pint + PHPStan + `tsc`.
 
 Deferred (explicitly): platform admins, admin auth guard, gates/policies, impersonation — see `docs/admins-roles-permissions-plan.md`.
 

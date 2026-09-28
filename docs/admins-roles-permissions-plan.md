@@ -7,11 +7,11 @@ Scope: Platform **staff** (the people who operate the SaaS: manage users, worksp
 
 ## 1. The three layers (keep them separate)
 
-| Layer | Where it lives | Model | Purpose | State |
-|---|---|---|---|---|
-| Per-workspace roles | `workspace_user.role` (pivot) | `WorkspaceRole` enum | What a member can do *inside a workspace* (owner / admin / editor / viewer) | ✅ Implemented |
-| App-global user roles | *(removed)* | — | Former Spatie role system | ❌ Deleted (Spatie removed) |
-| **Platform admins** | `admins` table *(future)* | `AdminRole` enum | Who runs the whole app, across all workspaces | 🟡 This plan |
+| Layer                 | Where it lives                | Model                | Purpose                                                                     | State                       |
+| --------------------- | ----------------------------- | -------------------- | --------------------------------------------------------------------------- | --------------------------- |
+| Per-workspace roles   | `workspace_user.role` (pivot) | `WorkspaceRole` enum | What a member can do _inside a workspace_ (owner / admin / editor / viewer) | ✅ Implemented              |
+| App-global user roles | _(removed)_                   | —                    | Former Spatie role system                                                   | ❌ Deleted (Spatie removed) |
+| **Platform admins**   | `admins` table _(future)_     | `AdminRole` enum     | Who runs the whole app, across all workspaces                               | 🟡 This plan                |
 
 These three layers must never be merged. A user is an owner of their workspace **and** possibly an admin of the platform **and** possibly a member (editor/viewer) of someone else's workspace — three independent facts.
 
@@ -48,12 +48,12 @@ Schema::create('admins', function (Blueprint $table) {
 
 Column notes:
 
-| Column | Purpose |
-|---|---|
+| Column                  | Purpose                                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `user_id` (nullable FK) | Optional link so an admin can also exist as a customer (e.g. impersonate / act as a real user). `nullOnDelete` so deleting a customer never deletes the staff record. |
-| `email` + `password` | Staff credentials, hashed with the `hashed` cast — **independent** of the user's account. |
-| `role` | String from the `AdminRole` enum (single source of truth in code). |
-| `last_login_at` | Audit helpfulness; optional. |
+| `email` + `password`    | Staff credentials, hashed with the `hashed` cast — **independent** of the user's account.                                                                             |
+| `role`                  | String from the `AdminRole` enum (single source of truth in code).                                                                                                    |
+| `last_login_at`         | Audit helpfulness; optional.                                                                                                                                          |
 
 ### 3.2 `AdminRole` enum (`app/Enums/AdminRole.php`)
 
@@ -155,13 +155,13 @@ Seed a first super-admin via a `AdminSeeder` (e.g. `devadmin@dev.com`), with a f
 
 Named capabilities are the vocabulary used everywhere (`Gate` checks, `can:` middleware, later the v2 permission table):
 
-| Capability | Meaning |
-|---|---|
-| `view-admin-panel` | Enter the admin UI at all |
-| `manage-users` | Activated/disable/delete customer accounts |
-| `manage-workspaces` | Delete/suspend workspaces, review members |
-| `manage-billing` | Invoices, refunds, plan changes |
-| `manage-support` | Read tickets / customer context, reply |
+| Capability          | Meaning                                    |
+| ------------------- | ------------------------------------------ |
+| `view-admin-panel`  | Enter the admin UI at all                  |
+| `manage-users`      | Activated/disable/delete customer accounts |
+| `manage-workspaces` | Delete/suspend workspaces, review members  |
+| `manage-billing`    | Invoices, refunds, plan changes            |
+| `manage-support`    | Read tickets / customer context, reply     |
 
 ### 5.2 Role → capability mapping (v1)
 

@@ -1,12 +1,12 @@
-import { Form, Head, Link, usePage } from "@inertiajs/react";
-import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, Mail } from "lucide-react";
-import { BrandMark } from "@/components/ui/BrandMark";
-import { GradientButton } from "@/components/ui/GradientButton";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { appTheme } from "@/config/theme";
-import EmailVerificationController from "@/actions/App/Http/Controllers/Application/Auth/EmailVerificationController";
-import { index as dashboardIndex } from "@/actions/App/Http/Controllers/Application/DashboardController";
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, CheckCircle2, Mail } from 'lucide-react';
+import { BrandMark } from '@/components/ui/BrandMark';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { appTheme } from '@/config/theme';
+import EmailVerificationController from '@/actions/App/Http/Controllers/Application/Auth/EmailVerificationController';
+import { index as dashboardIndex } from '@/actions/App/Http/Controllers/Application/DashboardController';
 
 export default function VerifyEmail() {
     const { auth, flash, verification } = usePage().props;
@@ -42,7 +42,10 @@ export default function VerifyEmail() {
     const remainingSeconds =
         resendAvailableAt === null
             ? 0
-            : Math.max(0, Math.ceil((resendAvailableAt.getTime() - now) / 1000));
+            : Math.max(
+                  0,
+                  Math.ceil((resendAvailableAt.getTime() - now) / 1000),
+              );
 
     const isLocked = remainingSeconds > 0;
 
@@ -64,14 +67,17 @@ export default function VerifyEmail() {
                         Verify your email
                     </h1>
                     <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                        We sent a verification link to your email address. Click the
-                        link in the message to activate your account and access{" "}
-                        {appTheme.brandName}.
+                        We sent a verification link to your email address. Click
+                        the link in the message to activate your account and
+                        access {appTheme.brandName}.
                     </p>
 
                     {flash.success && (
                         <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-400">
-                            <CheckCircle2 className="size-4" aria-hidden="true" />
+                            <CheckCircle2
+                                className="size-4"
+                                aria-hidden="true"
+                            />
                             {flash.success}
                         </div>
                     )}
@@ -94,7 +100,7 @@ export default function VerifyEmail() {
                             >
                                 {isLocked
                                     ? `Resend available in ${remainingSeconds}s`
-                                    : "Resend verification email"}
+                                    : 'Resend verification email'}
                             </GradientButton>
                         )}
                     </Form>
@@ -103,7 +109,11 @@ export default function VerifyEmail() {
                         <ArrowLeft className="size-4" aria-hidden="true" />
                         {auth?.workspace ? (
                             <Link
-                                href={dashboardIndex({ workspace: auth.workspace.slug }).url}
+                                href={
+                                    dashboardIndex({
+                                        workspace: auth.workspace.slug,
+                                    }).url
+                                }
                                 className="text-[var(--color-primary)] hover:underline"
                             >
                                 Back to dashboard

@@ -42,7 +42,7 @@ class ConnectFacebookPagesAction
     /**
      * Fetch the pages the token can manage via the Graph "me/accounts" edge.
      *
-     * @return list<array{id: string, name: string, access_token: string}>
+     * @return list<array{id: string, name: string, access_token: string, picture: array{data: array{url: string}}}>
      */
     private function fetchPages(string $accessToken): array
     {
@@ -51,7 +51,7 @@ class ConnectFacebookPagesAction
                 ->connectTimeout(10)
                 ->timeout(30)
                 ->get(self::GRAPH_BASE.'/me/accounts', [
-                    'fields' => 'id,name,access_token',
+                    'fields' => 'id,name,access_token,picture{url}',
                 ]);
         } catch (Throwable) {
             return [];
@@ -85,6 +85,7 @@ class ConnectFacebookPagesAction
             ],
             [
                 'display_name' => $pageName,
+                'avatar_url' => $page['picture']['data']['url'] ?? null,
                 'access_token' => $pageToken,
                 'refresh_token' => null,
                 'token_expires_at' => null,

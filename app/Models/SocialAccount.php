@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property Platform $platform
  * @property string $external_account_id
  * @property string $display_name
+ * @property string|null $avatar_url
  * @property string|null $access_token
  * @property string|null $refresh_token
  * @property Carbon|null $token_expires_at
@@ -32,6 +33,7 @@ use Illuminate\Support\Carbon;
     'platform',
     'external_account_id',
     'display_name',
+    'avatar_url',
     'access_token',
     'refresh_token',
     'token_expires_at',
@@ -52,6 +54,24 @@ class SocialAccount extends Model
     public function connectedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'connected_by_user_id');
+    }
+
+    /**
+     * The status the UI should surface for this account.
+     *
+     * Expired is a runtime signal, never stored: a connected account whose
+     * token has lapsed is shown as expired, while explicit states such as
+     * Revoked always win and are never downgraded.
+     */
+    public function effectiveStatus(): SocialAccountStatus
+    {
+        if ($this->status === SocialAccountStatus::Connected
+            && $this->token_expires_at !== null
+            && $this->token_expires_at->isPast()) {
+            return SocialAccountStatus::Expired;
+        }
+
+        return $this->status;
     }
 
     /**

@@ -43,8 +43,8 @@ class SocialAccountController extends Controller
                     ],
                     'display_name' => $account->display_name,
                     'status' => [
-                        'value' => $account->status->value,
-                        'label' => $account->status->label(),
+                        'value' => $account->effectiveStatus()->value,
+                        'label' => $account->effectiveStatus()->label(),
                     ],
                     'token_expires_at' => $account->token_expires_at?->toIso8601String(),
                     'connected_at' => $account->connected_at?->toIso8601String(),

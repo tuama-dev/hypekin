@@ -154,7 +154,7 @@ test('the media index lists only the workspace media with eager metadata', funct
             ->component('Application/Media/Index')
             ->where('media.total', 2)
             ->has('media.data', 2)
-            ->where('media.data.0.uploaded_by', $user->name)
+            ->where('media.data.0.uploaded_by', $user->fullname)
             ->where('media.data.0.attached_to_post', true)
             ->where('media.data.0.posted_count', 1)
             ->where('media.data.1.attached_to_post', false));

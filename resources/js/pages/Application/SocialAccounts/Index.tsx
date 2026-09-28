@@ -1,9 +1,10 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { Link2, Plus } from 'lucide-react';
+import { Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/components/Layout/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PlatformConnectSection } from '@/components/ui/PlatformConnect';
 import SocialAccountController from '@/actions/App/Http/Controllers/Application/SocialAccountController';
 
 interface PlatformView {
@@ -107,28 +108,12 @@ export default function ConnectedAccounts({
                             .
                         </p>
                     </div>
-
-                    {connectablePlatforms.length > 0 && (
-                        <nav
-                            className="flex flex-wrap items-center gap-2"
-                            aria-label="Connect a platform"
-                        >
-                            {connectablePlatforms.map((platform) => (
-                                <a
-                                    key={platform.value}
-                                    href={platform.connect_url ?? '#'}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
-                                >
-                                    <Plus
-                                        className="size-4"
-                                        aria-hidden="true"
-                                    />
-                                    Connect {platform.label}
-                                </a>
-                            ))}
-                        </nav>
-                    )}
                 </header>
+
+                <PlatformConnectSection
+                    platforms={connectablePlatforms}
+                    accounts={accounts}
+                />
 
                 {accounts.length === 0 ? (
                     <section className="mt-6 rounded-2xl border border-dashed border-(--border) bg-(--panel) p-8 text-center">
@@ -140,7 +125,7 @@ export default function ConnectedAccounts({
                         </h2>
                         <p className="mx-auto mt-1 max-w-sm text-sm text-(--muted)">
                             {connectablePlatforms.length > 0
-                                ? 'Connect a platform above to start publishing posts to the workspace.'
+                                ? 'Connect a platform below to start publishing posts to the workspace.'
                                 : 'Publishing is not configured for any platform yet. Ask the workspace owner to enable one.'}
                         </p>
                     </section>

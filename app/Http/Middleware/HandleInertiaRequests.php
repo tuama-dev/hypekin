@@ -65,6 +65,19 @@ class HandleInertiaRequests extends Middleware
                         'role' => (string) $workspace->pivot->role,
                     ])
                     ->values(),
+                'notifications' => $user
+                    ?->notifications()
+                    ->latest()
+                    ->limit(8)
+                    ->get()
+                    ->map(fn ($notification) => [
+                        'id' => $notification->getKey(),
+                        'read_at' => $notification->read_at?->toIso8601String(),
+                        'created_at' => $notification->created_at?->toIso8601String(),
+                        'data' => $notification->data,
+                    ])
+                    ->values(),
+                'unread_count' => $user?->unreadNotifications()->count() ?? 0,
             ],
             'flash' => [
                 'error' => $request->session()->get('flash.error'),

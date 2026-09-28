@@ -1,14 +1,14 @@
-import { Form, Head, Link, usePage } from "@inertiajs/react";
-import { ArrowRight, Check, LockIcon, Mail, ShieldCheck } from "lucide-react";
-import AuthController from "@/actions/App/Http/Controllers/Application/Auth/AuthController";
-import { BrandMark } from "@/components/ui/BrandMark";
-import { GradientButton } from "@/components/ui/GradientButton";
-import { SocialButtons } from "@/components/ui/SocialButtons";
-import { TextInput } from "@/components/ui/TextInput";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { themeConfig } from "@/config/theme";
-import CustomToaster from "@/components/ui/CustomToaster";
-import { toast } from "sonner";
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { ArrowRight, Check, LockIcon, Mail, ShieldCheck } from 'lucide-react';
+import AuthController from '@/actions/App/Http/Controllers/Application/Auth/AuthController';
+import { BrandMark } from '@/components/ui/BrandMark';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { SocialButtons } from '@/components/ui/SocialButtons';
+import { TextInput } from '@/components/ui/TextInput';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { themeConfig } from '@/config/theme';
+import CustomToaster from '@/components/ui/CustomToaster';
+import { toast } from 'sonner';
 
 export default function Login() {
     const { flash } = usePage().props;
@@ -141,10 +141,10 @@ export default function Login() {
                                         disabled={processing}
                                     >
                                         {processing ? (
-                                            "Logging in..."
+                                            'Logging in...'
                                         ) : (
                                             <span className="inline-flex items-center justify-center gap-2">
-                                                Log in{" "}
+                                                Log in{' '}
                                                 <ArrowRight
                                                     size={17}
                                                     strokeWidth={2.5}

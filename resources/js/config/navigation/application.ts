@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+    CalendarDays,
     FolderOpen,
     LayoutDashboard,
     Link2,
@@ -16,9 +17,10 @@ export type SidebarItem = {
 
 export const navigation: SidebarItem[] = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { label: 'Posts', icon: Send, href: '/posts' },
-    { label: 'Media', icon: FolderOpen, href: '/media' },
     { label: 'Accounts', icon: Link2, href: '/accounts' },
+    { label: 'Posts', icon: Send, href: '/posts' },
+    { label: 'Calendar', icon: CalendarDays, href: '/calendar' },
+    { label: 'Media', icon: FolderOpen, href: '/media' },
 ];
 
 export const footerNavigation: SidebarItem[] = [

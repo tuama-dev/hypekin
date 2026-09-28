@@ -18,8 +18,25 @@ export type Workspace = {
     [key: string]: unknown;
 };
 
+export type Notification = {
+    id: string;
+    read_at: string | null;
+    created_at: string | null;
+    data: {
+        title: string;
+        message: string;
+        platform: string;
+        account_display_name: string;
+        error: string | null;
+        post_id: string;
+        workspace_slug: string;
+    };
+};
+
 export type Auth = {
     user: User;
     workspace: Workspace | null;
     workspaces: Workspace[] | null;
+    notifications: Notification[] | null;
+    unread_count: number;
 };

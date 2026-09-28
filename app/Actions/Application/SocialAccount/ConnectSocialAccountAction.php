@@ -27,6 +27,7 @@ class ConnectSocialAccountAction
             ],
             [
                 'display_name' => $socialiteUser->getName() ?: $socialiteUser->getNickname() ?: $socialiteUser->getId(),
+                'avatar_url' => $socialiteUser->getAvatar(),
                 'access_token' => $socialiteUser->token,
                 'refresh_token' => $socialiteUser->refreshToken,
                 'token_expires_at' => $socialiteUser->expiresIn ? now()->addSeconds($socialiteUser->expiresIn) : null,

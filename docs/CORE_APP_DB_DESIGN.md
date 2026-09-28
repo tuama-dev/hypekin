@@ -37,15 +37,15 @@ connected twice within one workspace (relevant when an agency attaches many acco
 
 ## `posts`
 
-| Field                       | Type                | Notes                                                                                                                                                                           |
-| --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                        | ulid/uuid, PK       |                                                                                                                                                                                 |
-| `workspace_id`              | FK → workspaces     |                                                                                                                                                                                 |
-| `created_by_user_id`        | FK → users          |                                                                                                                                                                                 |
-| `status`                    | enum                | full set: `draft` / `scheduled` / `publishing` / `published` / `failed` / `canceled` — composer writes `scheduled` (future date) or `publishing` (now); the job recalculates to `published` / `failed`                                                                                                   |
-| `scheduled_at`              | timestamp, nullable | populated for scheduled posts; publish-now leaves it null                                                                                                                 |
-| `approval_status`           | enum, nullable      | Phase 2 — leave null                                                                                                                                                            |
-| `created_at` / `updated_at` | timestamp           |                                                                                                                                                                                 |
+| Field                       | Type                | Notes                                                                                                                                                                                                  |
+| --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                        | ulid/uuid, PK       |                                                                                                                                                                                                        |
+| `workspace_id`              | FK → workspaces     |                                                                                                                                                                                                        |
+| `created_by_user_id`        | FK → users          |                                                                                                                                                                                                        |
+| `status`                    | enum                | full set: `draft` / `scheduled` / `publishing` / `published` / `failed` / `canceled` — composer writes `scheduled` (future date) or `publishing` (now); the job recalculates to `published` / `failed` |
+| `scheduled_at`              | timestamp, nullable | populated for scheduled posts; publish-now leaves it null                                                                                                                                              |
+| `approval_status`           | enum, nullable      | Phase 2 — leave null                                                                                                                                                                                   |
+| `created_at` / `updated_at` | timestamp           |                                                                                                                                                                                                        |
 
 No `caption`/`content` field here — captions are per-platform and live on `post_targets`.
 Resist putting content directly on `posts` even with a single-platform compose form; it costs
@@ -55,18 +55,18 @@ a migration the moment a second platform is added.
 
 ## `post_targets`
 
-| Field                       | Type                 | Notes                                                                                       |
-| --------------------------- | -------------------- | ------------------------------------------------------------------------------------------- |
-| `id`                        | ulid/uuid, PK        |                                                                                             |
-| `post_id`                   | FK → posts           |                                                                                             |
-| `social_account_id`         | FK → social_accounts |                                                                                             |
-| `caption`                   | text                 | the actual content sent to the platform                                                     |
-| `status`                    | enum                 | `pending` / `queued` / `published` / `failed` — composer writes `pending`; the job writes `queued`, then `published` / `failed`                                               |
-| `platform_post_id`          | string, nullable     | platform's ID for the published post — write back after a successful call                   |
-| `published_at`              | timestamp, nullable  |                                                                                             |
-| `error_message`             | text, nullable       | capture the raw failure — this is what makes failures visibly captured instead of swallowed |
-| `retry_count`               | integer, default 0   | not incremented yet — the job is idempotent (skips targets already published) and deliberately does not auto-retry, since publishing FB/IG isn't idempotent                       |
-| `created_at` / `updated_at` | timestamp            |                                                                                             |
+| Field                       | Type                 | Notes                                                                                                                                                       |
+| --------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                        | ulid/uuid, PK        |                                                                                                                                                             |
+| `post_id`                   | FK → posts           |                                                                                                                                                             |
+| `social_account_id`         | FK → social_accounts |                                                                                                                                                             |
+| `caption`                   | text                 | the actual content sent to the platform                                                                                                                     |
+| `status`                    | enum                 | `pending` / `queued` / `published` / `failed` — composer writes `pending`; the job writes `queued`, then `published` / `failed`                             |
+| `platform_post_id`          | string, nullable     | platform's ID for the published post — write back after a successful call                                                                                   |
+| `published_at`              | timestamp, nullable  |                                                                                                                                                             |
+| `error_message`             | text, nullable       | capture the raw failure — this is what makes failures visibly captured instead of swallowed                                                                 |
+| `retry_count`               | integer, default 0   | not incremented yet — the job is idempotent (skips targets already published) and deliberately does not auto-retry, since publishing FB/IG isn't idempotent |
+| `created_at` / `updated_at` | timestamp            |                                                                                                                                                             |
 
 **Constraint:** unique on `(post_id, social_account_id)` — one target per post per account, so retries
 can't double-publish to the same account.
@@ -95,6 +95,7 @@ Upload flow: `POST /media/intent` → presigned PUT (browser straight to object 
 Publishing hands the platform the object's public GET URL (`Media::publicUrl()`), never the presigned PUT URL.
 
 Library + lifecycle:
+
 - `GET /media` lists `MediaStatus::Ready` rows (soft-deleted excluded) paginated 24/page for Inertia
   `<InfiniteScroll>` (`Inertia::scroll`), eager-loading `uploadedBy` and a `posts` count — no N+1.
 - `DELETE /media/{media}` soft-deletes the row **and** removes the object bytes, but is refused
