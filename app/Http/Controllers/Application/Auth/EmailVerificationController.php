@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Application\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Settings\Settings;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,9 @@ class EmailVerificationController extends Controller
             return null;
         }
 
-        return Carbon::parse($sentAt)->addSeconds((int) config('verification.resend_cooldown'));
+        // Resolved from the container rather than injected: this is a static
+        // method called from HandleInertiaRequests on every request, so there is
+        // no controller instance to inject into.
+        return Carbon::parse($sentAt)->addSeconds(app(Settings::class)->int('verification.resend_cooldown', 60));
     }
 }

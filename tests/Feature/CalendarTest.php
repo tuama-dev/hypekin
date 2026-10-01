@@ -14,6 +14,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Settings\Settings;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia;
 
@@ -318,6 +319,7 @@ test('a job queued for a stale schedule is a no-op after a reschedule', function
         app(PublishToInstagramAction::class),
         app(PublishToLinkedInAction::class),
         app(PublishToTikTokAction::class),
+        app(Settings::class),
     );
 
     $target->refresh();

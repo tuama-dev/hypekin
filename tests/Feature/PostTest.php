@@ -18,22 +18,13 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\PostTargetFailedNotification;
+use App\Settings\Settings;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
-
-function linkedAccount(User $user, array $attributes = []): SocialAccount
-{
-    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
-
-    return SocialAccount::factory()->create(array_merge([
-        'workspace_id' => $workspace->id,
-        'status' => SocialAccountStatus::Connected,
-    ], $attributes));
-}
 
 test('the posts index renders a post with its target chips', function () {
     $user = User::factory()->create();
@@ -411,6 +402,7 @@ function runPublishJob(PostTarget $target): void
         app(PublishToInstagramAction::class),
         app(PublishToLinkedInAction::class),
         app(PublishToTikTokAction::class),
+        app(Settings::class),
     );
 }
 
@@ -976,7 +968,7 @@ test('the status job marks a finished TikTok publish as published', function () 
     ]);
 
     $job = new CheckTikTokPublishStatusJob($target);
-    $job->handle();
+    $job->handle(app(Settings::class));
 
     Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/post/publish/status/fetch/')
         && $request['publish_id'] === 'publish-123');
@@ -1014,7 +1006,7 @@ test('the status job marks a rejected TikTok publish as failed', function () {
     ]);
 
     $job = new CheckTikTokPublishStatusJob($target);
-    $job->handle();
+    $job->handle(app(Settings::class));
 
     $target->refresh();
 
@@ -1042,7 +1034,7 @@ test('the status job re-queues itself while TikTok is still processing', functio
     ]);
 
     $job = new CheckTikTokPublishStatusJob($target);
-    $job->handle();
+    $job->handle(app(Settings::class));
 
     $target->refresh();
 
@@ -1068,11 +1060,50 @@ test('the status job fails a TikTok publish that exceeds the poll budget', funct
     ]);
 
     $job = new CheckTikTokPublishStatusJob($target);
-    $job->handle();
+    $job->handle(app(Settings::class));
 
     $target->refresh();
 
     expect($target->status)->toBe(PostTargetStatus::Failed);
     expect($target->error_message)->toContain('still processing');
-    expect($target->error_message)->toContain('Timing out');
+    expect($target->error_message)->toContain('Timing out after 10 checks');
+});
+
+test('the poll budget and interval come from the publish settings', function () {
+    Queue::fake([CheckTikTokPublishStatusJob::class]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'open.tiktokapis.com/v2/post/publish/status/fetch/' => Http::response([
+            'data' => ['status' => 'PROCESSING_CREATE'],
+        ]),
+    ]);
+
+    app(Settings::class)->set('publish.tiktok_max_polls', 2);
+    app(Settings::class)->set('publish.tiktok_poll_delay_seconds', 15);
+
+    $this->travelTo(now()->startOfSecond());
+
+    $target = PostTarget::factory()->create([
+        'status' => PostTargetStatus::Queued,
+        'platform_post_id' => null,
+        'platform_upload_id' => 'publish-123',
+        'retry_count' => 1,
+    ]);
+
+    (new CheckTikTokPublishStatusJob($target))->handle(app(Settings::class));
+
+    Queue::assertPushed(
+        CheckTikTokPublishStatusJob::class,
+        fn (CheckTikTokPublishStatusJob $job): bool => $job->delay->equalTo(now()->addSeconds(15)),
+    );
+
+    // One more poll spends the budget configured above, not the default of 10.
+    $target->forceFill(['retry_count' => 2])->save();
+
+    (new CheckTikTokPublishStatusJob($target->fresh()))->handle(app(Settings::class));
+
+    $target->refresh();
+
+    expect($target->status)->toBe(PostTargetStatus::Failed);
+    expect($target->error_message)->toContain('Timing out after 2 checks');
 });

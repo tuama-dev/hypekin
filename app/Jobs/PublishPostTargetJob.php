@@ -11,6 +11,7 @@ use App\Enums\PostStatus;
 use App\Enums\PostTargetStatus;
 use App\Models\PostTarget;
 use App\Notifications\PostTargetFailedNotification;
+use App\Settings\Settings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -44,6 +45,7 @@ class PublishPostTargetJob implements ShouldQueue
         PublishToInstagramAction $publishToInstagram,
         PublishToLinkedInAction $publishToLinkedIn,
         PublishToTikTokAction $publishToTikTok,
+        Settings $settings,
     ): void {
         // A reschedule bumped the post's schedule_version after this job was
         // queued. The job's original delay target date is stale — skip it so
@@ -80,7 +82,7 @@ class PublishPostTargetJob implements ShouldQueue
                 ])->save();
 
                 CheckTikTokPublishStatusJob::dispatch($this->target)
-                    ->delay(now()->addSeconds(CheckTikTokPublishStatusJob::POLL_DELAY_SECONDS));
+                    ->delay(now()->addSeconds($settings->int('publish.tiktok_poll_delay_seconds', 60)));
 
                 return;
             }

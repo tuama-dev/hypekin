@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\PostTarget;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
@@ -21,7 +22,32 @@ class PostTargetFailedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    /**
+     * Build the queued email sent alongside the in-app database row.
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        $platform = $this->target->socialAccount->platform;
+        $workspaceSlug = $this->target->post?->workspace?->slug;
+
+        $message = (new MailMessage)
+            ->subject('Publish failed on '.$platform->label())
+            ->line('Your post did not publish to '.$this->target->socialAccount->display_name.'.');
+
+        if ($workspaceSlug !== null) {
+            $message->action(
+                'View post',
+                route('workspace.posts.show', [
+                    'workspace' => $workspaceSlug,
+                    'post' => $this->target->post_id,
+                ]),
+            );
+        }
+
+        return $message;
     }
 
     /**

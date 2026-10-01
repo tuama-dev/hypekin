@@ -1,6 +1,6 @@
 # Project Status — Where We Are Now
 
-Last updated: 2026-09-23
+Last updated: 2026-09-30
 Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admins-roles-permissions-plan.md`) and not built yet.
 
 ---
@@ -26,7 +26,7 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 
 - Email + password registration (validated via `RegisterRequest`), login, logout.
 - Social login with Google / Facebook / X / LinkedIn (OAuth via Socialite), account linking for authenticated users, provider whitelist, placeholder email for providers that don't return one.
-- **Email verification** for email registration: registration auto-logs in → `Registered` event → queued `SendEmailVerificationNotification` listener → `VerifyEmail` mail (queue); notice/verify/resend routes + pages; 60s resend cooldown with live countdown (`config/verification.php`); `flash.success`/`flash.error`. `User` implements `MustVerifyEmail` and dashboard is behind `verified`.
+- **Email verification** for email registration: registration auto-logs in → `Registered` event → queued `SendEmailVerificationNotification` listener → `VerifyEmail` mail (queue); notice/verify/resend routes + pages; 60s resend cooldown with live countdown (setting `verification.resend_cooldown`); `flash.success`/`flash.error`. `User` implements `MustVerifyEmail` and dashboard is behind `verified`.
 - Email verification is **not** (yet) enforced on the dashboard route.
 
 ### Workspaces (tenant per user)
@@ -56,9 +56,22 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 | `user_oauth_providers` | OAuth provider → user linkage (`provider_name`, `provider_id`, tokens, avatar) |
 | `workspaces`           | `name`, `slug` (unique) — no owner FK anymore                                  |
 | `workspace_user`       | membership pivot: `workspace_id`, `user_id`, `role`, unique pair               |
+| `settings`             | runtime-tunable business policy: `key` (unique), `value` (json) — see below    |
+| `post_retry_attempts`  | append-only user-retry audit: `post_id`, `attempted_by_user_id`, `attempted_legs`, `attempted_at` |
 | `jobs` / `cache`       | queue + cache infrastructure                                                   |
 
 Enum: `App\Enums\WorkspaceRole` — `owner`, `admin`, `editor`, `viewer`.
+
+**Runtime settings & retry policy:** `App\Settings\Settings` reads the `settings` table and takes its
+default at the call site, so policy (`retry.max_retries`, `retry.cooldown_seconds`,
+`publish.tiktok_max_polls`, `publish.tiktok_poll_delay_seconds`, `verification.resend_cooldown`) can be
+changed without a deploy. It is a container-scoped binding — one instance per HTTP request and per
+queue job, discarded between them — because the policy is read from inside publish jobs and a cache
+shared across processes would leave a worker on a stale policy; the model drops the memo on write so a
+change is visible for the rest of the same lifecycle. The user retry cap and cooldown are derived from
+the `post_retry_attempts` audit log by `ResolvePostRetryPolicy`, which the retry endpoint and the post
+detail page both use, so the button state can't disagree with the enforced rule. See
+`docs/SETTINGS_RETRY_POLICY_PLAN.md` and `docs/CORE_APP_DB_DESIGN.md`.
 
 ---
 
@@ -121,9 +134,11 @@ GET  /email/verify/{id}/{hash}   (signed)   → EmailVerificationController@veri
 POST /email/verification-notification       → resend, throttled + 60s cooldown (session-tracked)
 ```
 
-Resend cooldown: after a link is sent, resend is locked for `config('verification.resend_cooldown')` (60s)
-seconds. The notice page counts down from the shared `verification.resend_available_at` prop and
-re-enables the button when the timer ends; the server validates the cooldown independently.
+Resend cooldown: after a link is sent, resend is locked for `verification.resend_cooldown` seconds (60 by
+default, tunable at runtime in the `settings` table and read through `App\Settings\Settings`; it used to
+live in `config/verification.php`, which has been removed). The notice page counts down from the shared
+`verification.resend_available_at` prop and re-enables the button when the timer ends; the server
+validates the cooldown independently.
 
 ### 4.5 Logout
 
@@ -166,7 +181,8 @@ Deferred (explicitly): platform admins, admin auth guard, gates/policies, impers
 - Auth actions: `app/Actions/Application/Auth/*`, workspace: `app/Actions/Application/Workspace/CreateWorkspaceAction.php`
 - Controllers: `app/Http/Controllers/Application/**`
 - Models: `app/Models/{User,Workspace,UserOauthProvider}.php`, enum `app/Enums/WorkspaceRole.php`
-- Config: `config/verification.php` (resend cooldown)
+- Runtime settings: `app/Settings/Settings.php` over the `settings` table (`retry.*`, `publish.*`, `verification.resend_cooldown`), seeded by `database/seeders/SettingsSeeder.php`
+- Retry policy: `app/Actions/Application/Post/{ResolvePostRetryPolicy,PostRetryPolicy}.php` over the `post_retry_attempts` audit table
 - Pages: `resources/js/pages/Application/**`, layouts/components in `resources/js/components/**`
 - Tests: `tests/Feature/{RegistrationTest,SocialAuthTest,LoginTest,EmailVerificationTest}.php`
 - Docs: this file + `docs/admins-roles-permissions-plan.md`

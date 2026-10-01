@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Enums\PostTargetStatus;
 use App\Models\PostTarget;
 use App\Notifications\PostTargetFailedNotification;
+use App\Settings\Settings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,10 +21,6 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
 
     public const API_BASE = 'https://open.tiktokapis.com/v2';
 
-    public const POLL_DELAY_SECONDS = 60;
-
-    private const MAX_POLLS = 10;
-
     public function __construct(public PostTarget $target) {}
 
     /**
@@ -33,7 +30,7 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
      * processing, so a crashed worker never double-publishes — the original
      * init request already submitted the post.
      */
-    public function handle(): void
+    public function handle(Settings $settings): void
     {
         if ($this->target->status === PostTargetStatus::Published
             || $this->target->platform_post_id !== null) {
@@ -55,7 +52,7 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
                     'publish_id' => $this->target->platform_upload_id,
                 ]);
         } catch (Throwable $exception) {
-            $this->requeueOrFail('TikTok status check failed: '.$exception->getMessage());
+            $this->requeueOrFail('TikTok status check failed: '.$exception->getMessage(), $settings);
 
             return;
         }
@@ -63,7 +60,7 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
         $status = $response->json('data.status');
 
         if ($response->failed() || $status === null) {
-            $this->requeueOrFail($response->json('error.message') ?? 'TikTok did not return a publish status.');
+            $this->requeueOrFail($response->json('error.message') ?? 'TikTok did not return a publish status.', $settings);
 
             return;
         }
@@ -71,7 +68,7 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
         match ($status) {
             'PUBLISH_COMPLETE' => $this->markPublished($response->json('data.publically_available_post_id')),
             'FAILED', 'PUBLISH_FAILED' => $this->markFailed($response->json('data.fail_reason')),
-            default => $this->requeueOrFail('TikTok is still processing the post.'),
+            default => $this->requeueOrFail('TikTok is still processing the post.', $settings),
         };
     }
 
@@ -106,15 +103,27 @@ class CheckTikTokPublishStatusJob implements ShouldQueue
         $this->target->post->createdBy?->notify(new PostTargetFailedNotification($this->target));
     }
 
-    private function requeueOrFail(string $reason): void
+    /**
+     * Give the poll another go later, or give up once the poll budget is spent.
+     *
+     * The budget and interval are tunable settings rather than constants: TikTok
+     * processing time varies by media size, and operators need to widen the
+     * window without a deploy. `post_targets.retry_count` stays the poll
+     * counter — it belongs to this pipeline alone, and is never touched by a
+     * user-initiated post retry.
+     */
+    private function requeueOrFail(string $reason, Settings $settings): void
     {
-        if ($this->target->retry_count >= self::MAX_POLLS) {
-            $this->markFailed($reason.' Timing out after '.self::MAX_POLLS.' checks.');
+        $maxPolls = $settings->int('publish.tiktok_max_polls', 10);
+        $pollDelay = $settings->int('publish.tiktok_poll_delay_seconds', 60);
+
+        if ($this->target->retry_count >= $maxPolls) {
+            $this->markFailed($reason.' Timing out after '.$maxPolls.' checks.');
 
             return;
         }
 
         $this->target->increment('retry_count');
-        self::dispatch($this->target)->delay(now()->addSeconds(self::POLL_DELAY_SECONDS));
+        self::dispatch($this->target)->delay(now()->addSeconds($pollDelay));
     }
 }

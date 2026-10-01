@@ -6,6 +6,8 @@ use App\Enums\PostTargetStatus;
 use App\Observers\PostTargetObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -58,6 +60,35 @@ class PostTarget extends Model
     public function metrics(): HasMany
     {
         return $this->hasMany(PostMetric::class);
+    }
+
+    /**
+     * Failed targets that never reached the platform, so a retry can re-send
+     * them without risking a second post on the other side.
+     *
+     * The SQL twin of isRetryable(); keep the two conditions in step. A target
+     * holding a platform post id is published, and one holding a TikTok upload
+     * id already has an upload in flight, so neither may be re-sent.
+     *
+     * @param  Builder<PostTarget>  $query
+     */
+    #[Scope]
+    protected function retryable(Builder $query): void
+    {
+        $query->where('status', PostTargetStatus::Failed)
+            ->whereNull('platform_post_id')
+            ->whereNull('platform_upload_id');
+    }
+
+    /**
+     * The in-memory twin of the retryable() scope, for filtering an
+     * already-loaded relation so the post page does not re-query it.
+     */
+    public function isRetryable(): bool
+    {
+        return $this->status === PostTargetStatus::Failed
+            && $this->platform_post_id === null
+            && $this->platform_upload_id === null;
     }
 
     /**

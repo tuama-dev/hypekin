@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Application;
 
+use App\Actions\Application\Post\ResolvePostRetryPolicy;
 use App\Enums\Platform;
 use App\Enums\PostStatus;
 use App\Enums\PostTargetStatus;
@@ -19,6 +20,7 @@ use App\Models\SocialAccount;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -242,6 +244,115 @@ class PostController extends Controller
             ]);
     }
 
+    /**
+     * Re-attempt publishing for every failed, unsubmitted target of a post.
+     *
+     * Eligibility (failed before any platform-side submission) and the retry cap
+     * and cooldown both come from ResolvePostRetryPolicy, so the rules enforced
+     * here are the same ones the post page renders. Eligible targets go back to
+     * pending and their publish job is re-dispatched immediately; the target
+     * observer then derives the post back to Publishing.
+     *
+     * The attempt is recorded in `post_retry_attempts`, and
+     * `post_targets.retry_count` is deliberately left alone: it counts TikTok
+     * status polls of a submitted upload, which is a different concern.
+     */
+    public function retry(Request $request, Workspace $workspace, Post $post): RedirectResponse
+    {
+        $post = $workspace->posts()->whereKey($post->getKey())->firstOrFail();
+        $policy = app(ResolvePostRetryPolicy::class);
+
+        // The cap is read from the audit log and then a row is appended, so two
+        // concurrent requests would both read "one retry left" and both consume
+        // it, dispatching the same targets twice. The lock serialises them: the
+        // second one re-reads the log inside startRetry() and finds the first
+        // one's attempt already recorded, so it is refused on the cap. The whole
+        // decision runs inside the lock rather than just the insert, because a
+        // caller that resolved the target list before waiting would otherwise
+        // act on a stale set that the first request already moved to pending.
+        //
+        // The TTL is generous because with a sync queue the closure dispatches
+        // publish jobs inline, network calls included. Nothing is lost by it
+        // outliving the request: the cooldown is far longer, so a lock that
+        // outlives a crashed request blocks nothing the user could do anyway.
+        $started = Cache::lock('post-retry:'.$post->getKey(), 30)->get(
+            fn (): RedirectResponse => $this->startRetry($request, $post, $policy),
+        );
+
+        // Lock::get() yields the callback's value on success and a falsy acquire
+        // result when the lock is held, so the type is the test — not a null
+        // check, which a `false` would sail straight past.
+        if (! $started instanceof RedirectResponse) {
+            return redirect()
+                ->back()
+                ->with('flash', [
+                    'error' => 'A retry for this post is already being started. Please try again in a moment.',
+                ]);
+        }
+
+        return $started;
+    }
+
+    /**
+     * Check the policy and, if it allows, start the retry.
+     *
+     * Runs under the caller's lock, so its reads of the attempt log and of the
+     * target statuses are current with respect to any other retry of this post.
+     */
+    private function startRetry(Request $request, Post $post, ResolvePostRetryPolicy $policy): RedirectResponse
+    {
+        $targets = $policy->eligibleTargets($post);
+
+        if ($targets->isEmpty()) {
+            return redirect()
+                ->back()
+                ->with('flash', ['error' => 'There are no failed targets to retry.']);
+        }
+
+        $state = $policy->resolve($post, $targets->count());
+
+        if ($state->exhausted) {
+            return redirect()
+                ->back()
+                ->with('flash', ['error' => 'No retries left for this post.']);
+        }
+
+        if ($state->waitSeconds > 0) {
+            return redirect()
+                ->back()
+                ->with('flash', [
+                    'error' => 'Retry available in '.self::formatWait($state->waitSeconds).'.',
+                ]);
+        }
+
+        DB::transaction(function () use ($request, $post, $targets): void {
+            foreach ($targets as $target) {
+                $target->forceFill([
+                    'status' => PostTargetStatus::Pending,
+                    'error_message' => null,
+                ])->save();
+
+                PublishPostTargetJob::dispatch($target, $post->schedule_version);
+            }
+
+            $post->retryAttempts()->create([
+                'attempted_by_user_id' => $request->user()->getKey(),
+                'attempted_legs' => $targets->count(),
+                'attempted_at' => now(),
+            ]);
+        });
+
+        $count = $targets->count();
+
+        return redirect()
+            ->back()
+            ->with('flash', [
+                'success' => $count === 1
+                    ? 'Retrying 1 failed account.'
+                    : "Retrying {$count} failed accounts.",
+            ]);
+    }
+
     public function show(Workspace $workspace, Post $post): Response
     {
         $post = $workspace->posts()
@@ -296,10 +407,57 @@ class PostController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'retry' => $this->serializeRetryPolicy($post),
         ];
 
         return Inertia::render('Application/Posts/Show', [
             'post' => $serialized,
         ]);
+    }
+
+    /**
+     * The retry affordance for the detail page, derived server-side.
+     *
+     * The policy is never trusted to the browser: the component only renders
+     * the button state these fields describe, and the endpoint re-checks it.
+     *
+     * The cooldown is sent as an absolute instant rather than a remaining count
+     * so the page's countdown and the server's cooldown agree without depending
+     * on the browser's clock being right.
+     *
+     * @return array{eligible_legs: int, failed_legs: int, retries_left: int, exhausted: bool, last_retried_at: string|null, retry_available_at: string|null}
+     */
+    private function serializeRetryPolicy(Post $post): array
+    {
+        $policy = app(ResolvePostRetryPolicy::class)->resolve($post);
+
+        return [
+            'eligible_legs' => $policy->eligibleLegs,
+            'failed_legs' => $policy->failedLegs,
+            'retries_left' => $policy->retriesLeft,
+            'exhausted' => $policy->exhausted,
+            'last_retried_at' => $policy->lastRetriedAt?->toIso8601String(),
+            'retry_available_at' => $policy->retryAvailableAt?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Format a cooldown wait as m:ss, matching the countdown on the retry
+     * button so both surfaces read the same.
+     */
+    /**
+     * Render a cooldown wait for a flash message.
+     *
+     * Grows to hours once past an hour, because the countdown on the button is
+     * built the same way — a "3:00" cooldown would read as three minutes.
+     */
+    private static function formatWait(int $seconds): string
+    {
+        $minutes = intdiv($seconds, 60);
+        $remainder = $seconds % 60;
+
+        return $minutes >= 60
+            ? sprintf('%d:%02d:%02d', intdiv($minutes, 60), $minutes % 60, $remainder)
+            : sprintf('%d:%02d', $minutes, $remainder);
     }
 }

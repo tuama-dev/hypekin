@@ -10,12 +10,14 @@ use App\Enums\PostStatus;
 use App\Enums\PostTargetStatus;
 use App\Enums\SocialAccountStatus;
 use App\Models\Media;
+use App\Models\Post;
 use App\Models\PostMetric;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Notifications\PostTargetFailedNotification;
+use App\Settings\Settings;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -57,6 +59,7 @@ class DemoContentSeeder extends Seeder
         $this->createPosts($workspace, $user, $accounts, $media);
         $this->createMetrics($workspace, $user);
         $this->seedFailureNotification($workspace, $user);
+        $this->seedRetryAttempts($workspace, $user);
 
         $this->command?->info(sprintf(
             'Demo content seeded. Log in as %s / %s at %s',
@@ -674,6 +677,59 @@ class DemoContentSeeder extends Seeder
 
         if ($failedTarget !== null) {
             Notification::sendNow($user, new PostTargetFailedNotification($failedTarget));
+        }
+    }
+
+    /**
+     * Give the demo workspace's first retryable failure a retry history so the
+     * post page shows the retry affordance in its non-default states: a live
+     * cooldown countdown, a remaining retry, and the "last retried" line.
+     *
+     * The history is derived from the live `retry.*` settings rather than
+     * hard-coded, because the page reads the same settings to decide what to
+     * render. Fixed numbers would quietly contradict a tuned policy — seed two
+     * attempts against a cap of one and the demo shows "exhausted" while the
+     * docs promise a countdown. A cap of one cannot show both a countdown and a
+     * remaining retry, so the demo settles for the exhausted state, which is
+     * correct rather than broken.
+     */
+    private function seedRetryAttempts(Workspace $workspace, User $user): void
+    {
+        $post = Post::query()
+            ->whereIn('id', $workspace->posts()->pluck('id'))
+            ->whereHas(
+                'targets',
+                fn ($query) => $query
+                    ->where('status', PostTargetStatus::Failed)
+                    ->whereNull('platform_post_id')
+                    ->whereNull('platform_upload_id'),
+            )
+            ->first();
+
+        if ($post === null) {
+            return;
+        }
+
+        $settings = app(Settings::class);
+
+        // Two attempts leaves the default cap of three with one retry in hand.
+        $attemptCount = max(1, min(2, $settings->int('retry.max_retries', 3) - 1));
+
+        // Just inside the cooldown, so the button counts down and then frees up.
+        $newestSecondsAgo = max(1, min(240, $settings->int('retry.cooldown_seconds', 300) - 5));
+
+        $offsets = [$newestSecondsAgo];
+
+        if ($attemptCount > 1) {
+            $offsets[] = $newestSecondsAgo * 4;
+        }
+
+        foreach ($offsets as $secondsAgo) {
+            $post->retryAttempts()->create([
+                'attempted_by_user_id' => $user->getKey(),
+                'attempted_legs' => 1,
+                'attempted_at' => now()->subSeconds($secondsAgo),
+            ]);
         }
     }
 }

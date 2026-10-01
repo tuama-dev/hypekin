@@ -26,6 +26,9 @@ class PostTargetFactory extends Factory
             'caption' => fake()->sentence(),
             'status' => PostTargetStatus::Published,
             'platform_post_id' => fake()->numerify('############'),
+            // Set only once a platform has accepted the upload, so it is the
+            // flag PostTarget::isRetryable() checks alongside platform_post_id.
+            'platform_upload_id' => null,
             'published_at' => now(),
             'error_message' => null,
             'retry_count' => 0,
@@ -40,6 +43,7 @@ class PostTargetFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => PostTargetStatus::Pending,
             'platform_post_id' => null,
+            'platform_upload_id' => null,
             'published_at' => null,
         ]);
     }
@@ -52,6 +56,11 @@ class PostTargetFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => PostTargetStatus::Failed,
             'platform_post_id' => null,
+            // Cleared so the default state models a leg that failed before the
+            // platform ever saw it — the only kind that is safe to re-send. A
+            // TikTok leg that failed after uploading keeps this set and is not
+            // retryable; pass it explicitly to model that.
+            'platform_upload_id' => null,
             'published_at' => null,
             'error_message' => 'Platform rejected the request.',
         ]);

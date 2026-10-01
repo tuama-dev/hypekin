@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Application\Post\ResolvePostRetryPolicy;
 use App\Enums\PostStatus;
 use App\Enums\PostTargetStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -44,9 +45,27 @@ class Post extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
+    /**
+     * The post's per-account publishing legs.
+     *
+     * @return HasMany<PostTarget, $this>
+     */
     public function targets(): HasMany
     {
         return $this->hasMany(PostTarget::class);
+    }
+
+    /**
+     * User-initiated retry attempts, newest first when ordered.
+     *
+     * The retry policy is derived entirely from these rows — see
+     * {@see ResolvePostRetryPolicy}.
+     *
+     * @return HasMany<PostRetryAttempt, $this>
+     */
+    public function retryAttempts(): HasMany
+    {
+        return $this->hasMany(PostRetryAttempt::class);
     }
 
     public function media(): BelongsToMany

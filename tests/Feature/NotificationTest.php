@@ -48,6 +48,34 @@ test('a failed publish stores a database notification for the creator with the f
     expect($data['workspace_slug'])->toBe($workspace->slug);
 });
 
+test('the failure notification delivers email alongside the database row', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+    $account = SocialAccount::factory()->create([
+        'workspace_id' => $workspace->id,
+        'platform' => Platform::Facebook,
+        'display_name' => 'Acme Page',
+        'status' => SocialAccountStatus::Connected,
+    ]);
+
+    $post = Post::factory()->for($workspace)->create(['created_by_user_id' => $user->id, 'status' => PostStatus::Publishing]);
+    $target = PostTarget::factory()->pending()->create([
+        'post_id' => $post->id,
+        'social_account_id' => $account->id,
+    ]);
+
+    $notification = new PostTargetFailedNotification($target);
+
+    expect($notification->via($user))->toContain('database')->toContain('mail');
+
+    $mail = $notification->toMail($user);
+    expect($mail->subject)->toBe('Publish failed on Facebook');
+    expect($mail->introLines)->toContain('Your post did not publish to Acme Page.');
+    expect($mail->actionUrl)->toBe(
+        route('workspace.posts.show', ['workspace' => $workspace, 'post' => $post]),
+    );
+});
+
 test('read-all marks every notification for the authenticated user as read', function () {
     $user = User::factory()->create();
     $workspace = app(CreateWorkspaceAction::class)->ensure($user);

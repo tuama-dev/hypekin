@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Workspace;
+use App\Settings\Settings;
 use App\Socialite\TikTokProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -22,7 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Scoped, not shared: one Settings instance per HTTP request and per
+        // queue job, discarded between them. The retry and TikTok poll policy is
+        // read from inside publish jobs, so a cache shared across processes could
+        // leave a worker publishing under a policy an operator had already
+        // changed. See App\Settings\Settings.
+        $this->app->scoped(Settings::class);
     }
 
     /**
@@ -74,6 +80,16 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        // Retries are already capped per post by the audit log and spaced by the
+        // cooldown, so this only exists to brake a client that hammers the
+        // endpoint. It is keyed per post, not per user, so retrying a second post
+        // is never blocked by a burst against the first. The legitimate cadence
+        // is one retry per post per cooldown, so the allowance is generous.
+        RateLimiter::for('post-retry', function (Request $request): Limit {
+            return Limit::perMinute(5)->by(
+                $request->user()?->getKey().'|'.$request->route('post'),
+            );
+        });
     }
 
     /**

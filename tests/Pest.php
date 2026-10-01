@@ -1,5 +1,9 @@
 <?php
 
+use App\Actions\Application\Workspace\CreateWorkspaceAction;
+use App\Enums\SocialAccountStatus;
+use App\Models\SocialAccount;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +51,21 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * A connected social account on the user's own workspace.
+ *
+ * Shared by the post and retry test files, so it lives here rather than in one
+ * of them: a helper defined in a single test file is only in scope when that
+ * file is loaded, which silently makes the other file unrunnable on its own.
+ */
+function linkedAccount(User $user, array $attributes = []): SocialAccount
+{
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    return SocialAccount::factory()->create(array_merge([
+        'workspace_id' => $workspace->id,
+        'status' => SocialAccountStatus::Connected,
+    ], $attributes));
 }

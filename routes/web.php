@@ -66,6 +66,9 @@ Route::group([], function (): void {
         Route::patch('/{workspace:slug}/posts/{post}/scheduled_at', [PostController::class, 'reschedule'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.posts.reschedule');
+        Route::post('/{workspace:slug}/posts/{post}/retry', [PostController::class, 'retry'])
+            ->middleware(['verified', 'workspace', 'throttle:post-retry'])
+            ->name('workspace.posts.retry');
         Route::post('/{workspace:slug}/posts/ai-caption', [AiCaptionController::class, 'generate'])
             ->middleware(['verified', 'workspace', 'throttle:ai-caption'])
             ->name('workspace.posts.ai-caption');
