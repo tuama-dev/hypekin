@@ -134,6 +134,7 @@ class PostController extends Controller
                 ->values()
                 ->all(),
             'publishableAccounts' => $this->publishableAccounts($workspace),
+            'ai_enabled' => filled(config('ai.providers.'.config('ai.default').'.key')),
         ]);
     }
 

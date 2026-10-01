@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Application\AiCaptionController;
 use App\Http\Controllers\Application\Auth\AuthController;
 use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use App\Http\Controllers\Application\Auth\RegistrationController;
@@ -65,6 +66,9 @@ Route::group([], function (): void {
         Route::patch('/{workspace:slug}/posts/{post}/scheduled_at', [PostController::class, 'reschedule'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.posts.reschedule');
+        Route::post('/{workspace:slug}/posts/ai-caption', [AiCaptionController::class, 'generate'])
+            ->middleware(['verified', 'workspace', 'throttle:ai-caption'])
+            ->name('workspace.posts.ai-caption');
         Route::get('/{workspace:slug}/calendar', [CalendarController::class, 'index'])
             ->middleware(['verified', 'workspace'])
             ->name('workspace.calendar');

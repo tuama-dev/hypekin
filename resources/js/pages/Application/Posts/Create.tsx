@@ -16,6 +16,7 @@ import {
 } from '@/components/Posts/AccountTargetPicker';
 import PostController from '@/actions/App/Http/Controllers/Application/PostController';
 import MediaController from '@/actions/App/Http/Controllers/Application/MediaController';
+import { AiCaptionBox } from '@/components/Posts/AiCaptionBox';
 import PostPreviewPane, {
     createFallbackDefinition,
     platformPreviewDefinitions,
@@ -24,6 +25,7 @@ import PostPreviewPane, {
 interface CreatePostPageProps {
     publishableAccounts: PublishableAccount[];
     publishablePlatforms: string[];
+    ai_enabled: boolean;
 }
 
 const MAX_CAPTION_LENGTH = 3000;
@@ -96,6 +98,7 @@ function readImageSize(file: File): Promise<{ width: number; height: number }> {
 export default function CreatePost({
     publishableAccounts,
     publishablePlatforms,
+    ai_enabled,
 }: CreatePostPageProps) {
     const { auth } = usePage().props;
     const workspace = auth.workspace;
@@ -109,6 +112,7 @@ export default function CreatePost({
     } | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [activePlatformId, setActivePlatformId] = useState('facebook');
+    const [aiBoxVisible, setAiBoxVisible] = useState(true);
 
     const form = useForm({
         caption: '',
@@ -133,6 +137,15 @@ export default function CreatePost({
     const availablePlatformIds = Array.from(
         new Set(selectedAccounts.map((account) => account.platform.value)),
     );
+    const allPublishablePlatformIds = Array.from(
+        new Set(
+            publishableAccounts.map((account) => account.platform.value),
+        ),
+    );
+    const aiPlatformIds =
+        availablePlatformIds.length > 0
+            ? availablePlatformIds
+            : allPublishablePlatformIds;
     const registryPlatformIds = new Set(
         platformPreviewDefinitions.map((definition) => definition.id),
     );
@@ -335,6 +348,34 @@ export default function CreatePost({
                     <div className={showPreview ? 'hidden lg:block' : 'block'}>
                         <div className="grid gap-6">
                             <section className="rounded-2xl border border-(--border) bg-(--panel) p-6">
+                                {ai_enabled && aiBoxVisible && (
+                                    <div className="mb-6">
+                                        <AiCaptionBox
+                                            workspaceSlug={
+                                                currentWorkspace.slug
+                                            }
+                                            platforms={aiPlatformIds}
+                                            caption={form.data.caption}
+                                            title={form.data.title}
+                                            maxCaptionLength={
+                                                MAX_CAPTION_LENGTH
+                                            }
+                                            maxTitleLength={MAX_TITLE_LENGTH}
+                                            onCaption={(caption) => {
+                                                form.setData('caption', caption);
+                                                form.clearErrors('caption');
+                                            }}
+                                            onTitle={(title) => {
+                                                form.setData('title', title);
+                                                form.clearErrors('title');
+                                            }}
+                                            onDismiss={() =>
+                                                setAiBoxVisible(false)
+                                            }
+                                        />
+                                    </div>
+                                )}
+
                                 <label
                                     className="text-sm font-bold text-[var(--color-ink)]"
                                     htmlFor="caption"

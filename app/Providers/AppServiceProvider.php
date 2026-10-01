@@ -2,10 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Workspace;
 use App\Socialite\TikTokProvider;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Socialite\Facades\Socialite;
@@ -28,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->registerSocialitePlatforms();
+        $this->registerRateLimiters();
     }
 
     /**
@@ -54,6 +59,21 @@ class AppServiceProvider extends ServiceProvider
             TikTokProvider::class,
             $app['config']['services.tiktok'],
         ));
+    }
+
+    /**
+     * Register the named rate limiters used by the application's routes.
+     */
+    protected function registerRateLimiters(): void
+    {
+        RateLimiter::for('ai-caption', function (Request $request): Limit {
+            $workspace = $request->route('workspace');
+
+            return Limit::perMinute(6)->by(
+                $request->user()?->getKey().'|'.($workspace instanceof Workspace ? $workspace->getKey() : (string) $workspace),
+            );
+        });
+
     }
 
     /**
