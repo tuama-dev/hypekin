@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AuthRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -47,7 +46,7 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
-    public function logout(Request $request): Response
+    public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
 
