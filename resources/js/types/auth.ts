@@ -10,11 +10,24 @@ export type User = {
     [key: string]: unknown; // This allows for additional properties...
 };
 
+export type WorkspaceAbility =
+    | 'view'
+    | 'publish'
+    | 'manageMedia'
+    | 'update'
+    | 'manageAccounts';
+
 export type Workspace = {
     id: string;
     name: string;
     slug: string;
     role: string;
+    /**
+     * Capabilities the signed-in member holds in this workspace. The server
+     * derives the list from the same policy that guards the routes, so a control
+     * hidden here is one the API would refuse.
+     */
+    abilities: WorkspaceAbility[];
     [key: string]: unknown;
 };
 

@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\WorkspaceRole;
 use App\Http\Controllers\Application\Auth\EmailVerificationController;
 use App\Models\Workspace;
+use App\Policies\WorkspacePolicy;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -44,6 +46,14 @@ class HandleInertiaRequests extends Middleware
             ? $workspaces?->firstWhere('id', $request->route('workspace')->getKey())
             : null;
 
+        $policy = app(WorkspacePolicy::class);
+
+        // Read once: the pivot is already hydrated, so the extra query that
+        // Workspace::roleFor() would run per request is not needed here.
+        $currentRole = $currentWorkspace !== null
+            ? (string) $currentWorkspace->pivot->role
+            : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -54,7 +64,10 @@ class HandleInertiaRequests extends Middleware
                         'id' => $currentWorkspace->getKey(),
                         'name' => $currentWorkspace->name,
                         'slug' => $currentWorkspace->slug,
-                        'role' => (string) $currentWorkspace->pivot->role,
+                        'role' => $currentRole,
+                        'abilities' => $policy->abilitiesFor(
+                            $currentRole !== null ? WorkspaceRole::tryFrom($currentRole) : null,
+                        ),
                     ]
                     : null,
                 'workspaces' => $workspaces

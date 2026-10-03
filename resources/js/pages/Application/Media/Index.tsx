@@ -82,6 +82,8 @@ function formatDate(value: string | null): string {
 export default function MediaIndex({ media }: MediaIndexPageProps) {
     const { auth, flash } = usePage().props;
     const workspace = auth.workspace;
+    const canManageMedia =
+        workspace?.abilities.includes('manageMedia') ?? false;
     const [mediaToDelete, setMediaToDelete] = useState<MediaView | null>(null);
 
     useEffect(() => {
@@ -219,32 +221,34 @@ export default function MediaIndex({ media }: MediaIndexPageProps) {
                                                         </p>
                                                     </div>
 
-                                                    <button
-                                                        type="button"
-                                                        title={
-                                                            item.attached_to_post
-                                                                ? 'This file is attached to a post and cannot be deleted.'
-                                                                : 'Delete this file'
-                                                        }
-                                                        disabled={
-                                                            item.attached_to_post
-                                                        }
-                                                        onClick={() => {
-                                                            if (
-                                                                !item.attached_to_post
-                                                            ) {
-                                                                setMediaToDelete(
-                                                                    item,
-                                                                );
+                                                    {canManageMedia && (
+                                                        <button
+                                                            type="button"
+                                                            title={
+                                                                item.attached_to_post
+                                                                    ? 'This file is attached to a post and cannot be deleted.'
+                                                                    : 'Delete this file'
                                                             }
-                                                        }}
-                                                        className="shrink-0 rounded-lg border border-(--border) p-2 text-(--muted) transition focus:outline-none enabled:hover:border-red-300 enabled:hover:bg-red-500/5 enabled:hover:text-red-600 enabled:focus:ring-4 enabled:focus:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                                                    >
-                                                        <Trash2
-                                                            className="size-4"
-                                                            aria-hidden="true"
-                                                        />
-                                                    </button>
+                                                            disabled={
+                                                                item.attached_to_post
+                                                            }
+                                                            onClick={() => {
+                                                                if (
+                                                                    !item.attached_to_post
+                                                                ) {
+                                                                    setMediaToDelete(
+                                                                        item,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="shrink-0 rounded-lg border border-(--border) p-2 text-(--muted) transition focus:outline-none enabled:hover:border-red-300 enabled:hover:bg-red-500/5 enabled:hover:text-red-600 enabled:focus:ring-4 enabled:focus:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            <Trash2
+                                                                className="size-4"
+                                                                aria-hidden="true"
+                                                            />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </li>
                                         ))}

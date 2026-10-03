@@ -58,6 +58,8 @@ export default function ConnectedAccounts({
 }: ConnectedAccountsProps) {
     const { auth, flash } = usePage().props;
     const workspace = auth.workspace;
+    const canManageAccounts =
+        workspace?.abilities.includes('manageAccounts') ?? false;
     const [accountToDisconnect, setAccountToDisconnect] =
         useState<AccountView | null>(null);
 
@@ -110,10 +112,12 @@ export default function ConnectedAccounts({
                     </div>
                 </header>
 
-                <PlatformConnectSection
-                    platforms={connectablePlatforms}
-                    accounts={accounts}
-                />
+                {canManageAccounts && (
+                    <PlatformConnectSection
+                        platforms={connectablePlatforms}
+                        accounts={accounts}
+                    />
+                )}
 
                 {accounts.length === 0 ? (
                     <section className="mt-6 rounded-2xl border border-dashed border-(--border) bg-(--panel) p-8 text-center">
@@ -124,9 +128,11 @@ export default function ConnectedAccounts({
                             No accounts connected yet
                         </h2>
                         <p className="mx-auto mt-1 max-w-sm text-sm text-(--muted)">
-                            {connectablePlatforms.length > 0
-                                ? 'Connect a platform below to start publishing posts to the workspace.'
-                                : 'Publishing is not configured for any platform yet. Ask the workspace owner to enable one.'}
+                            {!canManageAccounts
+                                ? 'No accounts are connected to this workspace yet. Ask an owner or admin to connect one.'
+                                : connectablePlatforms.length > 0
+                                  ? 'Connect a platform below to start publishing posts to the workspace.'
+                                  : 'Publishing is not configured for any platform yet. Ask the workspace owner to enable one.'}
                         </p>
                     </section>
                 ) : (
@@ -168,17 +174,21 @@ export default function ConnectedAccounts({
                                     >
                                         {account.status.label}
                                     </span>
-                                    {account.status.value === 'connected' && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setAccountToDisconnect(account)
-                                            }
-                                            className="shrink-0 rounded-lg border border-(--border) px-4 py-2 text-sm font-semibold text-(--muted) transition hover:border-red-300 hover:bg-red-500/5 hover:text-red-600 focus:ring-4 focus:ring-red-500/20 focus:outline-none"
-                                        >
-                                            Disconnect
-                                        </button>
-                                    )}
+                                    {canManageAccounts &&
+                                        account.status.value ===
+                                            'connected' && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setAccountToDisconnect(
+                                                        account,
+                                                    )
+                                                }
+                                                className="shrink-0 rounded-lg border border-(--border) px-4 py-2 text-sm font-semibold text-(--muted) transition hover:border-red-300 hover:bg-red-500/5 hover:text-red-600 focus:ring-4 focus:ring-red-500/20 focus:outline-none"
+                                            >
+                                                Disconnect
+                                            </button>
+                                        )}
                                 </li>
                             );
                         })}

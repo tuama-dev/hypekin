@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Workspace;
+use App\Policies\WorkspacePolicy;
 use App\Settings\Settings;
 use App\Socialite\TikTokProvider;
 use Carbon\CarbonImmutable;
@@ -10,6 +11,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -37,8 +39,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->registerPolicies();
         $this->registerSocialitePlatforms();
         $this->registerRateLimiters();
+    }
+
+    /**
+     * Bind the models that carry authorization rules to their policy.
+     *
+     * Laravel would discover these by naming convention; the explicit map keeps
+     * the authorization surface greppable and breaks loudly on a rename.
+     */
+    protected function registerPolicies(): void
+    {
+        Gate::policy(Workspace::class, WorkspacePolicy::class);
     }
 
     /**

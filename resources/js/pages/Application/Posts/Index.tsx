@@ -157,6 +157,7 @@ export default function PostsIndex({
 }: PostsIndexPageProps) {
     const { auth } = usePage().props;
     const workspace = auth.workspace;
+    const canPublish = workspace?.abilities.includes('publish') ?? false;
 
     const [search, setSearch] = useState(filters.search);
     const [view, setView] = useState<ViewMode>(() => {
@@ -263,17 +264,19 @@ export default function PostsIndex({
                         </p>
                     </div>
 
-                    <Link
-                        href={
-                            PostController.create({
-                                workspace: currentWorkspace.slug,
-                            }).url
-                        }
-                        className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
-                    >
-                        <Plus className="size-4" aria-hidden="true" />
-                        New post
-                    </Link>
+                    {canPublish && (
+                        <Link
+                            href={
+                                PostController.create({
+                                    workspace: currentWorkspace.slug,
+                                }).url
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
+                        >
+                            <Plus className="size-4" aria-hidden="true" />
+                            New post
+                        </Link>
+                    )}
                 </header>
 
                 {posts.length > 0 || hasFilters ? (
@@ -516,19 +519,19 @@ export default function PostsIndex({
                                                                         post.id
                                                                     }
                                                                 >
-                                                                     <KanbanCard
-                                                                         workspaceSlug={
-                                                                             currentWorkspace.slug
-                                                                         }
-                                                                         post={
-                                                                             post
-                                                                         }
-                                                                         onReschedule={() =>
-                                                                             setRescheduling(
-                                                                                 post,
-                                                                             )
-                                                                         }
-                                                                     />
+                                                                    <KanbanCard
+                                                                        workspaceSlug={
+                                                                            currentWorkspace.slug
+                                                                        }
+                                                                        post={
+                                                                            post
+                                                                        }
+                                                                        onReschedule={() =>
+                                                                            setRescheduling(
+                                                                                post,
+                                                                            )
+                                                                        }
+                                                                    />
                                                                 </li>
                                                             ),
                                                         )}
@@ -734,6 +737,12 @@ function Failures({ post }: { post: PostView }) {
 }
 
 function RescheduleButton({ onClick }: { onClick: () => void }) {
+    const { auth } = usePage().props;
+
+    if (!auth.workspace?.abilities.includes('publish')) {
+        return null;
+    }
+
     return (
         <button
             type="button"

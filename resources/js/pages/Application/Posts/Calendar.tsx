@@ -1,5 +1,5 @@
-import { Head, Link, router, usePage } from "@inertiajs/react";
-import { useEffect, useMemo, useState } from "react";
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     CalendarPlus,
     ChevronLeft,
@@ -7,21 +7,21 @@ import {
     Clock,
     FileText,
     Plus,
-} from "lucide-react";
-import { toast } from "sonner";
-import AuthenticatedLayout from "@/components/Layout/AuthenticatedLayout";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import AuthenticatedLayout from '@/components/Layout/AuthenticatedLayout';
 import {
     AccountFilterBar,
     type AccountFilterItem,
-} from "@/components/Posts/AccountFilterBar";
-import { RescheduleModal } from "@/components/Posts/RescheduleModal";
-import { Select } from "@/components/ui/Select";
-import PostController from "@/actions/App/Http/Controllers/Application/PostController";
-import CalendarController from "@/actions/App/Http/Controllers/Application/CalendarController";
+} from '@/components/Posts/AccountFilterBar';
+import { RescheduleModal } from '@/components/Posts/RescheduleModal';
+import { Select } from '@/components/ui/Select';
+import PostController from '@/actions/App/Http/Controllers/Application/PostController';
+import CalendarController from '@/actions/App/Http/Controllers/Application/CalendarController';
 import {
     platformBrands,
     type PlatformValue,
-} from "@/components/ui/platformBrands";
+} from '@/components/ui/platformBrands';
 import {
     FALLBACK_STATUS_CHIP_CLASS,
     FALLBACK_STATUS_SWATCH_CLASS,
@@ -29,8 +29,8 @@ import {
     postStatusLegend,
     postStatusSwatchClasses,
     type PostStatusValue,
-} from "@/components/ui/postStatus";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/postStatus';
+import { cn } from '@/lib/utils';
 
 interface CalendarTarget {
     id: string;
@@ -63,10 +63,10 @@ interface CalendarPageProps {
     };
 }
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function pad(value: number): string {
-    return String(value).padStart(2, "0");
+    return String(value).padStart(2, '0');
 }
 
 function monthKey(date: Date): string {
@@ -74,7 +74,7 @@ function monthKey(date: Date): string {
 }
 
 function parseMonthKey(key: string): Date {
-    const [year, month] = key.split("-").map(Number);
+    const [year, month] = key.split('-').map(Number);
 
     return new Date(year, month - 1, 1);
 }
@@ -90,13 +90,13 @@ function dayKey(date: Date): string {
 function postDate(post: CalendarPost): Date {
     return post.scheduled_at !== null
         ? new Date(post.scheduled_at)
-        : new Date(post.created_at ?? "");
+        : new Date(post.created_at ?? '');
 }
 
 function formatPostTime(post: CalendarPost): string {
     return postDate(post).toLocaleString(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
+        dateStyle: 'medium',
+        timeStyle: 'short',
     });
 }
 
@@ -108,6 +108,7 @@ export default function Calendar({
 }: CalendarPageProps) {
     const { auth, flash } = usePage().props;
     const workspace = auth.workspace;
+    const canPublish = workspace?.abilities.includes('publish') ?? false;
 
     const [viewMonth, setViewMonth] = useState<Date>(() =>
         parseMonthKey(month),
@@ -269,7 +270,7 @@ export default function Calendar({
                                     index,
                                     1,
                                 ).toLocaleDateString(undefined, {
-                                    month: "long",
+                                    month: 'long',
                                 }),
                             }))}
                         />
@@ -322,8 +323,8 @@ export default function Calendar({
                         <div className="mb-3">
                             <h2 className="text-base font-bold text-(--text)">
                                 {viewMonth.toLocaleDateString(undefined, {
-                                    month: "long",
-                                    year: "numeric",
+                                    month: 'long',
+                                    year: 'numeric',
                                 })}
                             </h2>
                         </div>
@@ -337,7 +338,7 @@ export default function Calendar({
                                     <span
                                         aria-hidden="true"
                                         className={cn(
-                                            "size-2 rounded-full",
+                                            'size-2 rounded-full',
                                             postStatusSwatchClasses[
                                                 status.value
                                             ] ?? FALLBACK_STATUS_SWATCH_CLASS,
@@ -376,22 +377,22 @@ export default function Calendar({
                                         type="button"
                                         onClick={() => setSelectedDay(cell)}
                                         className={cn(
-                                            "flex min-h-28 flex-col items-stretch gap-1.5 rounded-xl border p-1.5 text-left transition focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none sm:p-2",
+                                            'flex min-h-28 flex-col items-stretch gap-1.5 rounded-xl border p-1.5 text-left transition focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none sm:p-2',
                                             isSelected
-                                                ? "border-[var(--color-accent-start)] bg-[var(--color-panel-muted)]"
+                                                ? 'border-[var(--color-accent-start)] bg-[var(--color-panel-muted)]'
                                                 : inMonth
-                                                  ? "border-(--border) hover:bg-(--panel-muted)"
-                                                  : "border-(--border) opacity-40 hover:bg-(--panel-muted) hover:opacity-70",
+                                                  ? 'border-(--border) hover:bg-(--panel-muted)'
+                                                  : 'border-(--border) opacity-40 hover:bg-(--panel-muted) hover:opacity-70',
                                         )}
                                     >
                                         <span
                                             className={cn(
-                                                "grid size-6 place-items-center rounded-full text-xs font-semibold",
+                                                'grid size-6 place-items-center rounded-full text-xs font-semibold',
                                                 isToday
-                                                    ? "bg-[var(--color-accent-start)] text-[var(--color-accent-ink)]"
+                                                    ? 'bg-[var(--color-accent-start)] text-[var(--color-accent-ink)]'
                                                     : inMonth
-                                                      ? "text-(--text)"
-                                                      : "text-(--muted)",
+                                                      ? 'text-(--text)'
+                                                      : 'text-(--muted)',
                                             )}
                                         >
                                             {cell.getDate()}
@@ -403,9 +404,9 @@ export default function Calendar({
                                                 .map((post) => (
                                                     <span
                                                         key={post.id}
-                                                        title={`${post.status.label} · ${formatPostTime(post)} · ${post.caption || "Untitled post"}`}
+                                                        title={`${post.status.label} · ${formatPostTime(post)} · ${post.caption || 'Untitled post'}`}
                                                         className={cn(
-                                                            "truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+                                                            'truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold',
                                                             postStatusChipClasses[
                                                                 post.status
                                                                     .value as PostStatusValue
@@ -414,7 +415,7 @@ export default function Calendar({
                                                         )}
                                                     >
                                                         {post.caption ||
-                                                            "Untitled post"}
+                                                            'Untitled post'}
                                                     </span>
                                                 ))}
                                             {dayPosts.length > 2 && (
@@ -454,39 +455,42 @@ export default function Calendar({
                                             {effectiveSelectedDay.toLocaleDateString(
                                                 undefined,
                                                 {
-                                                    weekday: "long",
-                                                    month: "long",
-                                                    day: "numeric",
+                                                    weekday: 'long',
+                                                    month: 'long',
+                                                    day: 'numeric',
                                                 },
                                             )}
                                         </h2>
                                         <p className="mt-0.5 text-xs text-(--muted)">
                                             {selectedPosts.length === 0
-                                                ? "No posts on this day"
-                                                : `${selectedPosts.length} post${selectedPosts.length === 1 ? "" : "s"}`}
+                                                ? 'No posts on this day'
+                                                : `${selectedPosts.length} post${selectedPosts.length === 1 ? '' : 's'}`}
                                         </p>
                                     </div>
-                                    <Link
-                                        href={
-                                            PostController.create({
-                                                workspace:
-                                                    currentWorkspace.slug,
-                                            }).url
-                                        }
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-3 py-2 text-xs font-bold text-[var(--color-accent-ink)] shadow-sm shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
-                                    >
-                                        <Plus
-                                            className="size-3.5"
-                                            aria-hidden="true"
-                                        />
-                                        New post
-                                    </Link>
+                                    {canPublish && (
+                                        <Link
+                                            href={
+                                                PostController.create({
+                                                    workspace:
+                                                        currentWorkspace.slug,
+                                                }).url
+                                            }
+                                            className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-3 py-2 text-xs font-bold text-[var(--color-accent-ink)] shadow-sm shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
+                                        >
+                                            <Plus
+                                                className="size-3.5"
+                                                aria-hidden="true"
+                                            />
+                                            New post
+                                        </Link>
+                                    )}
                                 </div>
 
                                 {selectedPosts.length === 0 ? (
                                     <p className="mt-4 rounded-xl border border-dashed border-(--border) bg-(--panel-muted) p-5 text-center text-sm text-(--muted)">
-                                        Nothing on this day yet — create one
-                                        with the button above.
+                                        {canPublish
+                                            ? 'Nothing on this day yet — create one with the button above.'
+                                            : 'Nothing on this day yet.'}
                                     </p>
                                 ) : (
                                     <ul className="mt-4 grid gap-3">
@@ -516,12 +520,12 @@ export default function Calendar({
                                                     <div className="min-w-0 flex-1">
                                                         <p className="line-clamp-2 text-sm font-semibold text-(--text)">
                                                             {post.caption ||
-                                                                "Untitled post"}
+                                                                'Untitled post'}
                                                         </p>
                                                         <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                                             <span
                                                                 className={cn(
-                                                                    "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                                                                    'rounded-full px-2.5 py-0.5 text-xs font-semibold',
                                                                     postStatusChipClasses[
                                                                         post
                                                                             .status
@@ -581,7 +585,7 @@ export default function Calendar({
                                                         )}
                                                     </div>
                                                     {post.status.value ===
-                                                        "scheduled" && (
+                                                        'scheduled' && (
                                                         <button
                                                             type="button"
                                                             onClick={() =>

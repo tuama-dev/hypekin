@@ -55,6 +55,8 @@ export default function WorkspaceSettings({
         return null;
     }
 
+    const canUpdate = workspace.abilities.includes('update');
+
     const capitalize = (value: string) =>
         value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -84,54 +86,61 @@ export default function WorkspaceSettings({
                             The public name that identifies this workspace.
                         </p>
 
-                        <Form
-                            action={
-                                WorkspaceSettingsController.update({
-                                    workspace: workspace.slug,
-                                }).url
-                            }
-                            method={
-                                WorkspaceSettingsController.update({
-                                    workspace: workspace.slug,
-                                }).method
-                            }
-                            className="mt-5 grid gap-5"
-                            setDefaultsOnSuccess
-                        >
-                            {({ errors, processing, wasSuccessful }) => (
-                                <>
-                                    <TextInput
-                                        id="name"
-                                        name="name"
-                                        label="Workspace name"
-                                        required
-                                        defaultValue={workspace.name}
-                                        error={errors.name}
-                                        style={{ paddingLeft: '1rem' }}
-                                    />
-                                    <div className="flex min-h-10 items-center gap-4">
-                                        {wasSuccessful && (
-                                            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-500">
-                                                <CheckCircle2
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />
-                                                Saved
-                                            </span>
-                                        )}
-                                        <button
-                                            type="submit"
-                                            disabled={processing}
-                                            className="ml-auto rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            {processing
-                                                ? 'Saving...'
-                                                : 'Save changes'}
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </Form>
+                        {canUpdate ? (
+                            <Form
+                                action={
+                                    WorkspaceSettingsController.update({
+                                        workspace: workspace.slug,
+                                    }).url
+                                }
+                                method={
+                                    WorkspaceSettingsController.update({
+                                        workspace: workspace.slug,
+                                    }).method
+                                }
+                                className="mt-5 grid gap-5"
+                                setDefaultsOnSuccess
+                            >
+                                {({ errors, processing, wasSuccessful }) => (
+                                    <>
+                                        <TextInput
+                                            id="name"
+                                            name="name"
+                                            label="Workspace name"
+                                            required
+                                            defaultValue={workspace.name}
+                                            error={errors.name}
+                                            style={{ paddingLeft: '1rem' }}
+                                        />
+                                        <div className="flex min-h-10 items-center gap-4">
+                                            {wasSuccessful && (
+                                                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-500">
+                                                    <CheckCircle2
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Saved
+                                                </span>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                disabled={processing}
+                                                className="ml-auto rounded-lg bg-linear-to-r from-[var(--color-accent-start)] to-[var(--color-accent-end)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-ink)] shadow-md shadow-[color:var(--color-accent-end)]/20 transition hover:-translate-y-0.5 hover:brightness-105 focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {processing
+                                                    ? 'Saving...'
+                                                    : 'Save changes'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </Form>
+                        ) : (
+                            <p className="mt-5 rounded-xl border border-dashed border-(--border) bg-(--panel-muted) p-5 text-sm text-(--muted)">
+                                Only an owner or admin can rename this
+                                workspace.
+                            </p>
+                        )}
                     </section>
 
                     <section className="rounded-2xl border border-(--border) bg-(--panel) p-6">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Workspace;
 
-use App\Enums\WorkspaceRole;
 use App\Models\Workspace;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,10 +18,7 @@ class UpdateWorkspaceRequest extends FormRequest
 
         return $workspace instanceof Workspace
             && $user !== null
-            && $workspace->users()
-                ->whereKey($user->getKey())
-                ->wherePivotIn('role', [WorkspaceRole::Owner->value, WorkspaceRole::Admin->value])
-                ->exists();
+            && $user->can('update', $workspace);
     }
 
     /**

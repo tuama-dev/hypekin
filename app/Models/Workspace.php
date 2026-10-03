@@ -47,11 +47,35 @@ class Workspace extends Model
         return $slug;
     }
 
+    /**
+     * @return BelongsToMany<User, $this, WorkspaceUser>
+     */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'workspace_user')
+            ->using(WorkspaceUser::class)
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * Resolve the role a given user holds in this workspace.
+     *
+     * Returns null when the user is not a member, and also when the pivot holds
+     * a role value the enum does not know about — an unknown role must not be
+     * treated as the weakest one, because that would silently grant access.
+     */
+    public function roleFor(User $user): ?WorkspaceRole
+    {
+        $membership = $this->users()
+            ->whereKey($user->getKey())
+            ->first();
+
+        if ($membership === null) {
+            return null;
+        }
+
+        return WorkspaceRole::tryFrom($membership->pivot->role);
     }
 
     public function socialAccounts(): HasMany

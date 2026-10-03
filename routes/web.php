@@ -33,68 +33,68 @@ Route::group([], function (): void {
 
     Route::prefix('app')->middleware('auth')->group(function (): void {
         Route::get('/{workspace:slug}/dashboard', [DashboardController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.dashboard');
         Route::get('/{workspace:slug}/settings', [WorkspaceSettingsController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.settings');
         Route::put('/{workspace:slug}/settings', [WorkspaceSettingsController::class, 'update'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:update,workspace'])
             ->name('workspace.settings.update');
         Route::get('/{workspace:slug}/accounts', [SocialAccountController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.accounts');
         Route::get('/{workspace:slug}/accounts/{platform}/connect', [SocialAccountController::class, 'connect'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageAccounts,workspace'])
             ->name('workspace.accounts.connect');
         Route::delete('/{workspace:slug}/accounts/{account}', [SocialAccountController::class, 'destroy'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageAccounts,workspace'])
             ->name('workspace.accounts.destroy');
 
         Route::get('/{workspace:slug}/posts', [PostController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.posts');
         Route::get('/{workspace:slug}/posts/create', [PostController::class, 'create'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:publish,workspace'])
             ->name('workspace.posts.create');
         Route::get('/{workspace:slug}/posts/{post}', [PostController::class, 'show'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.posts.show');
         Route::post('/{workspace:slug}/posts', [PostController::class, 'store'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:publish,workspace'])
             ->name('workspace.posts.store');
         Route::patch('/{workspace:slug}/posts/{post}/scheduled_at', [PostController::class, 'reschedule'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:publish,workspace'])
             ->name('workspace.posts.reschedule');
         Route::post('/{workspace:slug}/posts/{post}/retry', [PostController::class, 'retry'])
-            ->middleware(['verified', 'workspace', 'throttle:post-retry'])
+            ->middleware(['verified', 'workspace', 'can:publish,workspace', 'throttle:post-retry'])
             ->name('workspace.posts.retry');
         Route::post('/{workspace:slug}/posts/ai-caption', [AiCaptionController::class, 'generate'])
-            ->middleware(['verified', 'workspace', 'throttle:ai-caption'])
+            ->middleware(['verified', 'workspace', 'can:publish,workspace', 'throttle:ai-caption'])
             ->name('workspace.posts.ai-caption');
         Route::get('/{workspace:slug}/calendar', [CalendarController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.calendar');
         Route::post('/{workspace:slug}/media/intent', [MediaController::class, 'intent'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace'])
             ->name('workspace.media.intent');
         Route::post('/{workspace:slug}/media/complete', [MediaController::class, 'complete'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace'])
             ->name('workspace.media.complete');
         Route::get('/{workspace:slug}/media', [MediaController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.media');
         Route::delete('/{workspace:slug}/media/{media}', [MediaController::class, 'destroy'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace'])
             ->name('workspace.media.destroy');
         Route::get('/{workspace:slug}/notifications', [NotificationController::class, 'index'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.notifications.index');
         Route::post('/{workspace:slug}/notifications/read-all', [NotificationController::class, 'readAll'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.notifications.read-all');
         Route::patch('/{workspace:slug}/notifications/{notification}', [NotificationController::class, 'read'])
-            ->middleware(['verified', 'workspace'])
+            ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.notifications.read');
         Route::post('/logout', [AuthController::class, 'logout'])->name('workspace.logout');
     });

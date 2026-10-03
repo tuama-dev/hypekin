@@ -124,6 +124,7 @@ const METRIC_LABELS: Record<string, string> = {
 export default function PostsShow({ post }: PostsShowPageProps) {
     const { auth } = usePage().props;
     const workspace = auth.workspace;
+    const canPublish = workspace?.abilities.includes('publish') ?? false;
 
     const {
         eligible_legs: eligibleLegs,
@@ -218,12 +219,13 @@ export default function PostsShow({ post }: PostsShowPageProps) {
 
                     {failedLegs > 0 && eligibleLegs === 0 && (
                         <p className="max-w-xs text-right text-xs text-(--muted)">
-                            Nothing left to retry — every failed target was already submitted to its
-                            platform, so resending could publish it twice.
+                            Nothing left to retry — every failed target was
+                            already submitted to its platform, so resending
+                            could publish it twice.
                         </p>
                     )}
 
-                    {eligibleLegs > 0 && (
+                    {canPublish && eligibleLegs > 0 && (
                         <div className="flex flex-col items-end gap-1">
                             <button
                                 type="button"
