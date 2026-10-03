@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import { SidebarItem } from '@/config/navigation/application';
 import { Activity, HeartPulse, PanelsTopLeft, ShieldCheck } from 'lucide-react';
 

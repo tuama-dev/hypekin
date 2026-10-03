@@ -48,7 +48,6 @@ export function AiCaptionBox({
     workspaceSlug,
     platforms,
     caption,
-    title,
     maxCaptionLength,
     maxTitleLength,
     onCaption,

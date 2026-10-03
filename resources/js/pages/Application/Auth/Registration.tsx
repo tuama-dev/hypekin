@@ -1,5 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, Check, LockIcon, Mail, User } from 'lucide-react';
+import { ArrowRight, LockIcon, Mail, User } from 'lucide-react';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { SocialButtons } from '@/components/ui/SocialButtons';
