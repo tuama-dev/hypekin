@@ -23,7 +23,8 @@ export function StatCard({
     sparklineClassName,
 }: StatCardProps) {
     const hasSparkline =
-        sparklineValues !== undefined && sparklineValues.some((item) => item !== null && item > 0);
+        sparklineValues !== undefined &&
+        sparklineValues.some((item) => item !== null && item > 0);
 
     return (
         <div className="rounded-2xl border border-(--border) bg-(--panel) p-4">
@@ -44,10 +45,10 @@ export function StatCard({
                     />
                 )}
             </div>
-            <p className="mt-4 text-2xl font-extrabold tracking-tight tabular-nums text-(--text)">
+            <p className="mt-4 text-2xl font-extrabold tracking-tight text-(--text) tabular-nums">
                 {formatNumber(value)}
             </p>
-            <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-(--muted)">
+            <p className="mt-0.5 text-xs font-semibold tracking-wider text-(--muted) uppercase">
                 {label}
             </p>
             {hint && <p className="mt-1 text-xs text-(--muted)">{hint}</p>}

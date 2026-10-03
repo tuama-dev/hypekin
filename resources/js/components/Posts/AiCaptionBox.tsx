@@ -71,7 +71,7 @@ export function AiCaptionBox({
     const activePlatform =
         selectedPlatform !== null && shownPlatforms.includes(selectedPlatform)
             ? selectedPlatform
-            : shownPlatforms[0] ?? null;
+            : (shownPlatforms[0] ?? null);
 
     async function generate() {
         if (brief.trim() === '' || generating) {
@@ -274,48 +274,51 @@ export function AiCaptionBox({
                         </div>
                     )}
 
-                    {shownPlatforms.length > 0 && result.hashtags[activePlatform ?? ''] !== undefined && (
-                        <div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                {shownPlatforms.map((platform) => (
-                                    <button
-                                        key={platform}
-                                        type="button"
-                                        onClick={() =>
-                                            setSelectedPlatform(platform)
-                                        }
-                                        className={cn(
-                                            'rounded-full border px-3 py-1 text-xs font-semibold transition focus:ring-4 focus:outline-none',
-                                            activePlatform === platform
-                                                ? 'border-(--color-accent-start) bg-(--color-accent-start)/10 text-(--color-accent-start)'
-                                                : 'border-(--border) text-(--muted) hover:bg-(--panel) hover:text-(--text)',
-                                        )}
-                                    >
-                                        {PLATFORM_LABELS[platform] ?? platform}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="mt-2.5 flex flex-wrap gap-1.5">
-                                {(result.hashtags[activePlatform ?? ''] ?? []).map(
-                                    (hashtag) => (
+                    {shownPlatforms.length > 0 &&
+                        result.hashtags[activePlatform ?? ''] !== undefined && (
+                            <div>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    {shownPlatforms.map((platform) => (
+                                        <button
+                                            key={platform}
+                                            type="button"
+                                            onClick={() =>
+                                                setSelectedPlatform(platform)
+                                            }
+                                            className={cn(
+                                                'rounded-full border px-3 py-1 text-xs font-semibold transition focus:ring-4 focus:outline-none',
+                                                activePlatform === platform
+                                                    ? 'border-(--color-accent-start) bg-(--color-accent-start)/10 text-(--color-accent-start)'
+                                                    : 'border-(--border) text-(--muted) hover:bg-(--panel) hover:text-(--text)',
+                                            )}
+                                        >
+                                            {PLATFORM_LABELS[platform] ??
+                                                platform}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                    {(
+                                        result.hashtags[activePlatform ?? ''] ??
+                                        []
+                                    ).map((hashtag) => (
                                         <span
                                             key={hashtag}
                                             className="rounded-full bg-(--panel) px-2 py-0.5 text-xs font-semibold text-(--color-accent-start)"
                                         >
                                             {hashtag}
                                         </span>
-                                    ),
-                                )}
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={insertHashtags}
+                                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-(--border) px-3 py-1.5 text-xs font-semibold text-(--text) transition hover:bg-(--panel) focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
+                                >
+                                    Insert hashtags
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={insertHashtags}
-                                className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-(--border) px-3 py-1.5 text-xs font-semibold text-(--text) transition hover:bg-(--panel) focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none"
-                            >
-                                Insert hashtags
-                            </button>
-                        </div>
-                    )}
+                        )}
                 </div>
             )}
         </div>

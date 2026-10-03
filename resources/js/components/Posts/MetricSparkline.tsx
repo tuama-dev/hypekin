@@ -11,12 +11,18 @@ export function MetricSparkline({
     className,
     colorClass = 'stroke-(--color-accent-start)',
 }: MetricSparklineProps) {
-    const validNumbers = values.filter((v): v is number => v !== null && !Number.isNaN(v));
+    const validNumbers = values.filter(
+        (v): v is number => v !== null && !Number.isNaN(v),
+    );
 
     if (validNumbers.length < 2) {
         return (
-            <span className={cn('text-xs font-medium text-(--muted)', className)}>
-                {validNumbers.length === 1 ? validNumbers[0] : 'No snapshots yet'}
+            <span
+                className={cn('text-xs font-medium text-(--muted)', className)}
+            >
+                {validNumbers.length === 1
+                    ? validNumbers[0]
+                    : 'No snapshots yet'}
             </span>
         );
     }
@@ -30,15 +36,23 @@ export function MetricSparkline({
 
     const points = validNumbers
         .map((val, index) => {
-            const x = padding + (index / (validNumbers.length - 1)) * (width - padding * 2);
-            const y = height - padding - ((val - min) / range) * (height - padding * 2);
+            const x =
+                padding +
+                (index / (validNumbers.length - 1)) * (width - padding * 2);
+            const y =
+                height -
+                padding -
+                ((val - min) / range) * (height - padding * 2);
             return `${x},${y}`;
         })
         .join(' ');
 
     return (
         <div className={cn('inline-flex items-center gap-2', className)}>
-            <svg viewBox={`0 0 ${width} ${height}`} className="h-9 w-30 overflow-visible">
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                className="h-9 w-30 overflow-visible"
+            >
                 <polyline
                     fill="none"
                     strokeWidth="2.5"

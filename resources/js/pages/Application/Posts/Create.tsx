@@ -138,9 +138,7 @@ export default function CreatePost({
         new Set(selectedAccounts.map((account) => account.platform.value)),
     );
     const allPublishablePlatformIds = Array.from(
-        new Set(
-            publishableAccounts.map((account) => account.platform.value),
-        ),
+        new Set(publishableAccounts.map((account) => account.platform.value)),
     );
     const aiPlatformIds =
         availablePlatformIds.length > 0
@@ -362,7 +360,10 @@ export default function CreatePost({
                                             }
                                             maxTitleLength={MAX_TITLE_LENGTH}
                                             onCaption={(caption) => {
-                                                form.setData('caption', caption);
+                                                form.setData(
+                                                    'caption',
+                                                    caption,
+                                                );
                                                 form.clearErrors('caption');
                                             }}
                                             onTitle={(title) => {

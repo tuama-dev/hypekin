@@ -1,7 +1,10 @@
 import { Link } from '@inertiajs/react';
 import { Trophy, Users } from 'lucide-react';
 import PostController from '@/actions/App/Http/Controllers/Application/PostController';
-import { platformBrands, type PlatformValue } from '@/components/ui/platformBrands';
+import {
+    platformBrands,
+    type PlatformValue,
+} from '@/components/ui/platformBrands';
 import { formatNumber } from '@/lib/formatNumber';
 import { cn } from '@/lib/utils';
 import type { BestPost } from './types';
@@ -37,18 +40,28 @@ export function BestPostCard({ workspaceSlug, post }: BestPostCardProps) {
                         brand?.buttonClass ?? 'bg-(--muted)',
                     )}
                 >
-                    {brand ? <brand.icon className="size-5" /> : <Users className="size-5" />}
+                    {brand ? (
+                        <brand.icon className="size-5" />
+                    ) : (
+                        <Users className="size-5" />
+                    )}
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-(--text)">
                         {post.title ?? post.caption}
                     </p>
                     <p className="text-xs text-(--muted)">
-                        {brand?.label ?? post.platform} · {formatNumber(post.reach)} reach
+                        {brand?.label ?? post.platform} ·{' '}
+                        {formatNumber(post.reach)} reach
                     </p>
                 </div>
                 <Link
-                    href={PostController.show({ workspace: workspaceSlug, post: post.post_id }).url}
+                    href={
+                        PostController.show({
+                            workspace: workspaceSlug,
+                            post: post.post_id,
+                        }).url
+                    }
                     className="shrink-0 text-xs font-bold text-(--color-accent-start) hover:underline"
                 >
                     View

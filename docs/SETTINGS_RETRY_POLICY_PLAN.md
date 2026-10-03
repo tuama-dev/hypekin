@@ -17,11 +17,11 @@ places the shipped code deliberately differs from this plan.
   Infrastructure values (endpoints, HTTP timeouts, pagination, auth throttle, storage TTL)
   stay in code/`config`.
 - **In-scope settings (Tier 1):**
-  - `retry.max_retries = 3` — user retries per post (cap).
-  - `retry.cooldown_seconds = 300` — wait between user retries.
-  - `publish.tiktok_max_polls = 10` — TikTok status poll budget (`CheckTikTokPublishStatusJob::MAX_POLLS`).
-  - `publish.tiktok_poll_delay_seconds = 60` — TikTok poll interval (`POLL_DELAY_SECONDS`).
-  - `verification.resend_cooldown = 60` — migrate from `config/verification.php`.
+    - `retry.max_retries = 3` — user retries per post (cap).
+    - `retry.cooldown_seconds = 300` — wait between user retries.
+    - `publish.tiktok_max_polls = 10` — TikTok status poll budget (`CheckTikTokPublishStatusJob::MAX_POLLS`).
+    - `publish.tiktok_poll_delay_seconds = 60` — TikTok poll interval (`POLL_DELAY_SECONDS`).
+    - `verification.resend_cooldown = 60` — migrate from `config/verification.php`.
 - **Stays hardcoded (platform rules / infra):** TikTok `title` ≤ 22
   (`PublishToTikTokAction::MAX_TITLE_LENGTH`), platform `API_BASE` URLs, 10s/30s HTTP timeouts,
   `media.presign_ttl`, `auth.throttle`, pagination/feed limits, calendar `WINDOW_MONTHS`.
@@ -107,7 +107,7 @@ places the shipped code deliberately differs from this plan.
 ### 5. API + frontend
 
 - `PostController::show` serializes `retry` meta `{ eligible_legs, retries_left, exhausted,
-  last_retried_at, retry_available_at }` (policy stays server-side). The cooldown ships as an absolute
+last_retried_at, retry_available_at }` (policy stays server-side). The cooldown ships as an absolute
   `retry_available_at` rather than the originally-planned `wait_seconds` count, so the browser derives
   the unlock time from a server-stamped instant instead of its own clock — the same reasoning behind the
   existing `verification.resend_available_at` shared prop.
@@ -175,14 +175,14 @@ places the shipped code deliberately differs from this plan.
 - `PostController::retry` no longer touches `post_targets.retry_count`; the attempt row is written in the
   same transaction as the leg reset.
 - `show` serializes `post.retry` = `{ eligible_legs, retries_left, exhausted, last_retried_at,
-  retry_available_at }`; the component only renders the state it describes.
+retry_available_at }`; the component only renders the state it describes.
 - `Show.tsx` has the four states (hidden / exhausted / ticking `m:ss` / enabled) plus "Last retried", and
   disables the button while the request is in flight so a double click cannot burn a retry.
 - The cooldown is serialised as an **absolute** `retry_available_at`, not a remaining-seconds count, so
   the countdown does not inherit a disagreement between the browser clock and the app's. This matches the
   existing `verification.resend_available_at` convention.
 - `PostController::retry` holds a per-post cache lock across the whole check-and-dispatch, and the route
-  carries a `post-retry` rate limiter keyed per user *and* post. The cap is a read of the audit log
+  carries a `post-retry` rate limiter keyed per user _and_ post. The cap is a read of the audit log
   followed by an append, so without the lock two simultaneous requests would both consume a retry and
   both re-dispatch the same targets.
 - `CheckTikTokPublishStatusJob` lost `MAX_POLLS` and `POLL_DELAY_SECONDS`; `PublishPostTargetJob` lost

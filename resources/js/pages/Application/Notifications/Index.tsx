@@ -121,8 +121,9 @@ export default function NotificationsIndex({
                                                             className={cn(
                                                                 'flex w-full items-center gap-4 rounded-2xl border border-(--border) bg-(--panel) p-4 text-left transition hover:border-(--color-accent-start) hover:shadow-md focus:ring-4 focus:ring-[color:var(--color-accent-start)]/25 focus:outline-none',
                                                                 notification.read_at ===
-                                                                        null &&
-                                                                    index === 0 &&
+                                                                    null &&
+                                                                    index ===
+                                                                        0 &&
                                                                     'bg-(--panel-muted)',
                                                             )}
                                                         >
@@ -159,12 +160,14 @@ export default function NotificationsIndex({
                                                                     </span>
                                                                 </span>
                                                                 <span className="mt-0.5 block truncate text-sm text-(--muted)">
-                                                                    {notification.data
+                                                                    {notification
+                                                                        .data
                                                                         .message ??
                                                                         ''}
                                                                 </span>
                                                                 <span className="mt-0.5 block text-xs text-(--muted)">
-                                                                    {notification.data
+                                                                    {notification
+                                                                        .data
                                                                         .workspace_slug
                                                                         ? `${notification.data.workspace_slug} · `
                                                                         : ''}

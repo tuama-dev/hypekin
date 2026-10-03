@@ -1,7 +1,10 @@
 import { Link } from '@inertiajs/react';
 import { CalendarClock } from 'lucide-react';
 import PostController from '@/actions/App/Http/Controllers/Application/PostController';
-import { platformBrands, type PlatformValue } from '@/components/ui/platformBrands';
+import {
+    platformBrands,
+    type PlatformValue,
+} from '@/components/ui/platformBrands';
 import { timeUntil } from '@/lib/timeAgo';
 import { cn } from '@/lib/utils';
 import type { UpcomingPost } from './types';
@@ -11,14 +14,19 @@ interface UpcomingScheduleProps {
     items: UpcomingPost[];
 }
 
-export function UpcomingSchedule({ workspaceSlug, items }: UpcomingScheduleProps) {
+export function UpcomingSchedule({
+    workspaceSlug,
+    items,
+}: UpcomingScheduleProps) {
     if (items.length === 0) {
         return (
             <div className="flex items-center gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-(--panel-muted) text-(--muted)">
                     <CalendarClock className="size-5" />
                 </span>
-                <p className="text-sm text-(--muted)">No scheduled posts coming up.</p>
+                <p className="text-sm text-(--muted)">
+                    No scheduled posts coming up.
+                </p>
             </div>
         );
     }
@@ -28,12 +36,18 @@ export function UpcomingSchedule({ workspaceSlug, items }: UpcomingScheduleProps
             {items.map((item) => (
                 <li key={item.id} className="py-2">
                     <Link
-                        href={PostController.show({ workspace: workspaceSlug, post: item.id }).url}
-                        className="group flex items-center gap-3 rounded-xl px-1 py-1 transition hover:bg-(--panel-muted) -mx-1"
+                        href={
+                            PostController.show({
+                                workspace: workspaceSlug,
+                                post: item.id,
+                            }).url
+                        }
+                        className="group -mx-1 flex items-center gap-3 rounded-xl px-1 py-1 transition hover:bg-(--panel-muted)"
                     >
                         <div className="flex shrink-0 -space-x-1.5">
                             {item.platforms.slice(0, 3).map((platform) => {
-                                const brand = platformBrands[platform as PlatformValue];
+                                const brand =
+                                    platformBrands[platform as PlatformValue];
 
                                 return brand ? (
                                     <span

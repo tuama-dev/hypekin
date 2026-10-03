@@ -40,7 +40,7 @@ until the feature ships; refresh `docs/PROJECT_STATUS.md` when done.
 
 - `composer require laravel/ai`
 - `php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"` → `config/ai.php`
-  + migrations (`agent_conversations`, `agent_conversation_messages`).
+    - migrations (`agent_conversations`, `agent_conversation_messages`).
 - `php artisan migrate` — creates the two framework-owned conversation tables (unused by this
   stateless agent; safe and future-proof).
 
@@ -81,9 +81,9 @@ until the feature ships; refresh `docs/PROJECT_STATUS.md` when done.
 - Rate limiter named `ai-caption` (defined in `AppServiceProvider`/provider bootstrap):
   `Limit::perMinute(6)->by($request->user()?->getKey().'|'.$request->route('workspace')->getKey())`.
 - Error mapping (catch `Throwable` in the controller):
-  - Missing default-provider key → 422 `{ error: "AI captioning isn't configured." }`.
-  - `RateLimitedException` / `ProviderOverloadedException` / generic → 503 friendly message.
-  - `TooManyRequestsHttpException` from the limiter → 429 (handled by Laravel).
+    - Missing default-provider key → 422 `{ error: "AI captioning isn't configured." }`.
+    - `RateLimitedException` / `ProviderOverloadedException` / generic → 503 friendly message.
+    - `TooManyRequestsHttpException` from the limiter → 429 (handled by Laravel).
 - No DB writes.
 - `PostController::create` passes `ai_enabled =>` (default-provider key present) so the
   composer hides the AI box when unconfigured.
@@ -92,22 +92,22 @@ until the feature ships; refresh `docs/PROJECT_STATUS.md` when done.
 
 - New `resources/js/components/Posts/AiCaptionBox.tsx` (component conventions follow
   `AccountTargetPicker`):
-  - Brief textarea (≤500) + tone chips + **Generate** button with loading spinner (disabled
-    while in flight).
-  - Result: draft caption preview; TikTok **title** field shown when a TikTok target is
-    selected; per-platform hashtag chips with an insert selector.
-  - Actions: **Use caption** (`form.setData('caption', …)`), **Use title**, **Insert
-    hashtags** (selected platform's set, respect `MAX_CAPTION_LENGTH`), **Regenerate**,
-    **Dismiss**.
-  - XSRF `fetch` via Wayfinder URL (media-upload pattern); `sonner` toasts for errors/429;
-    visible only when the composer's `ai_enabled` prop is true.
+    - Brief textarea (≤500) + tone chips + **Generate** button with loading spinner (disabled
+      while in flight).
+    - Result: draft caption preview; TikTok **title** field shown when a TikTok target is
+      selected; per-platform hashtag chips with an insert selector.
+    - Actions: **Use caption** (`form.setData('caption', …)`), **Use title**, **Insert
+      hashtags** (selected platform's set, respect `MAX_CAPTION_LENGTH`), **Regenerate**,
+      **Dismiss**.
+    - XSRF `fetch` via Wayfinder URL (media-upload pattern); `sonner` toasts for errors/429;
+      visible only when the composer's `ai_enabled` prop is true.
 - `Create.tsx`: render the box near the Caption section; wire target selection (`platforms`
   derived from `selectedAccounts`) into the payload.
 
 ## 6. Tests (`tests/Feature/AiCaptionTest.php`)
 
 - **Happy path** via `CaptionGenerator::fake([['caption' => …, 'title' => …, 'hashtags' =>
-  […]]])` (SDK structured fakes accept schema-shaped arrays) → assert JSON mapping.
+[…]]])` (SDK structured fakes accept schema-shaped arrays) → assert JSON mapping.
 - **Prompt assertions:** `CaptionGenerator::assertPrompted(...)` — brief included; second
   arg/`assertPrompted` on prompt content.
 - **Shape test:** fake without explicit output (SDK auto-generates matching the schema).

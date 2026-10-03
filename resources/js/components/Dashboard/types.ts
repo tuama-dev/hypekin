@@ -59,5 +59,9 @@ export interface DashboardAnalytics {
     needs_attention: { count: number; items: AttentionItem[] };
     upcoming: UpcomingPost[];
     best_post: BestPost | null;
-    onboarding: { has_accounts: boolean; has_media: boolean; has_posts: boolean };
+    onboarding: {
+        has_accounts: boolean;
+        has_media: boolean;
+        has_posts: boolean;
+    };
 }

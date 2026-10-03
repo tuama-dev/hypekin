@@ -50,15 +50,15 @@ Focus: **the customer-facing app**. Platform admins are deferred (see `docs/admi
 
 ## 3. Database schema (current)
 
-| Table                  | Purpose                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `users`                | `fullname`, `email`, `password`, `email_verified_at`, remember token           |
-| `user_oauth_providers` | OAuth provider → user linkage (`provider_name`, `provider_id`, tokens, avatar) |
-| `workspaces`           | `name`, `slug` (unique) — no owner FK anymore                                  |
-| `workspace_user`       | membership pivot: `workspace_id`, `user_id`, `role`, unique pair               |
-| `settings`             | runtime-tunable business policy: `key` (unique), `value` (json) — see below    |
+| Table                  | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `users`                | `fullname`, `email`, `password`, `email_verified_at`, remember token                              |
+| `user_oauth_providers` | OAuth provider → user linkage (`provider_name`, `provider_id`, tokens, avatar)                    |
+| `workspaces`           | `name`, `slug` (unique) — no owner FK anymore                                                     |
+| `workspace_user`       | membership pivot: `workspace_id`, `user_id`, `role`, unique pair                                  |
+| `settings`             | runtime-tunable business policy: `key` (unique), `value` (json) — see below                       |
 | `post_retry_attempts`  | append-only user-retry audit: `post_id`, `attempted_by_user_id`, `attempted_legs`, `attempted_at` |
-| `jobs` / `cache`       | queue + cache infrastructure                                                   |
+| `jobs` / `cache`       | queue + cache infrastructure                                                                      |
 
 Enum: `App\Enums\WorkspaceRole` — `owner`, `admin`, `editor`, `viewer`.
 

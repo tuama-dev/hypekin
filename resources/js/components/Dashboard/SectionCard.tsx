@@ -9,13 +9,30 @@ interface SectionCardProps {
     children: ReactNode;
 }
 
-export function SectionCard({ title, subtitle, action, className, children }: SectionCardProps) {
+export function SectionCard({
+    title,
+    subtitle,
+    action,
+    className,
+    children,
+}: SectionCardProps) {
     return (
-        <section className={cn('rounded-2xl border border-(--border) bg-(--panel)', className)}>
+        <section
+            className={cn(
+                'rounded-2xl border border-(--border) bg-(--panel)',
+                className,
+            )}
+        >
             <header className="flex items-center justify-between gap-3 border-b border-(--border) px-4 py-3">
                 <div>
-                    <h3 className="text-base font-extrabold tracking-tight text-(--text)">{title}</h3>
-                    {subtitle && <p className="mt-0.5 text-xs text-(--muted)">{subtitle}</p>}
+                    <h3 className="text-base font-extrabold tracking-tight text-(--text)">
+                        {title}
+                    </h3>
+                    {subtitle && (
+                        <p className="mt-0.5 text-xs text-(--muted)">
+                            {subtitle}
+                        </p>
+                    )}
                 </div>
                 {action}
             </header>
