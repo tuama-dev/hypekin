@@ -3,8 +3,15 @@
 use App\Actions\Application\Workspace\CreateWorkspaceAction;
 use App\Enums\Platform;
 use App\Enums\WorkspaceRole;
+use App\Http\Requests\Post\AiCaptionRequest;
+use App\Http\Requests\Post\StorePostRequest;
+use App\Http\Requests\Post\UpdatePostScheduleRequest;
+use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
+use App\Http\Requests\WorkspaceAbilityRequest;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Routing\Route as RoutingRoute;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia;
 
 /**
@@ -22,6 +29,35 @@ function workspaceWithRole(WorkspaceRole $role): array
     $workspace->users()->updateExistingPivot($user->getKey(), ['role' => $role->value]);
 
     return [$user, $workspace];
+}
+
+/**
+ * Resolve a workspace ability request outside the HTTP pipeline so authorize()
+ * can be asserted directly.
+ *
+ * The route's `can:` middleware runs first in a real request and would mask the
+ * answer, so these tests hand the request a route that carries a workspace and
+ * no ability check.
+ */
+function abilityRequest(string $case, User $user, ?Workspace $workspace): WorkspaceAbilityRequest
+{
+    $request = match ($case) {
+        'create post' => new StorePostRequest,
+        'generate a caption' => new AiCaptionRequest,
+        'reschedule a post' => new UpdatePostScheduleRequest,
+        'rename a workspace' => new UpdateWorkspaceRequest,
+        default => throw new InvalidArgumentException("Unknown ability request case [{$case}]."),
+    };
+
+    $request->setContainer(app());
+
+    $route = new RoutingRoute(['POST'], '/ability-probe', []);
+    $route->parameters = $workspace === null ? [] : ['workspace' => $workspace];
+
+    $request->setRouteResolver(fn (): RoutingRoute => $route);
+    $request->setUserResolver(fn (): User => $user);
+
+    return $request;
 }
 
 /*
@@ -255,4 +291,95 @@ test('an editor is offered publishing but not account management', function () {
         ->get(route('workspace.dashboard', ['workspace' => $workspace]))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('auth.workspace.abilities', ['view', 'publish', 'manageMedia']));
+});
+
+/*
+|--------------------------------------------------------------------------
+| Workspace ability requests
+|--------------------------------------------------------------------------
+|
+| The `can:` middleware is the first gate, but it only protects the routes that
+| remember it. Each request below also carries its ability, so a workspace
+| mutation added later without that middleware still refuses a member who does
+| not hold it. These tests assert that second gate on its own, which a normal
+| request can never reach.
+|
+*/
+
+dataset('workspace ability requests', [
+    'creating a post needs publish' => ['create post', WorkspaceRole::Viewer, WorkspaceRole::Editor],
+    'a caption needs publish' => ['generate a caption', WorkspaceRole::Viewer, WorkspaceRole::Editor],
+    'rescheduling needs publish' => ['reschedule a post', WorkspaceRole::Viewer, WorkspaceRole::Editor],
+    'renaming needs update, not publish' => ['rename a workspace', WorkspaceRole::Editor, WorkspaceRole::Owner],
+]);
+
+test('a workspace ability request refuses a member who does not hold the ability', function (string $case, WorkspaceRole $refused, WorkspaceRole $granted) {
+    [$user, $workspace] = workspaceWithRole($refused);
+
+    expect(abilityRequest($case, $user, $workspace)->authorize())->toBeFalse();
+})->with('workspace ability requests');
+
+test('a workspace ability request admits a member who holds the ability', function (string $case, WorkspaceRole $refused, WorkspaceRole $granted) {
+    [$user, $workspace] = workspaceWithRole($granted);
+
+    expect(abilityRequest($case, $user, $workspace)->authorize())->toBeTrue();
+})->with('workspace ability requests');
+
+test('a workspace ability request refuses a member when the route carries no workspace', function (string $case, WorkspaceRole $refused, WorkspaceRole $granted) {
+    [$user] = workspaceWithRole(WorkspaceRole::Owner);
+
+    // An owner holding every ability is still refused: without a workspace there
+    // is nothing to check the ability against, and guessing must not pass.
+    expect(abilityRequest($case, $user, null)->authorize())->toBeFalse();
+})->with('workspace ability requests');
+
+test('a workspace mutation is refused even when the route forgot the ability middleware', function () {
+    Route::put('/ungated/{workspace}/settings', function (UpdateWorkspaceRequest $request, Workspace $workspace) {
+        return response()->noContent();
+    })->middleware('web')->name('ungated.settings');
+
+    [$editor, $editorWorkspace] = workspaceWithRole(WorkspaceRole::Editor);
+    [$owner, $ownerWorkspace] = workspaceWithRole(WorkspaceRole::Owner);
+
+    $url = fn (Workspace $target): string => url("/ungated/{$target->slug}/settings");
+
+    $this->actingAs($editor)
+        ->put($url($editorWorkspace), ['name' => 'Renamed'])
+        ->assertForbidden();
+
+    // The same request from the role that does hold the ability reaches the
+    // controller, so the refusal above came from the request and nowhere else.
+    $this->actingAs($owner)
+        ->put($url($ownerWorkspace), ['name' => 'Renamed'])
+        ->assertNoContent();
+});
+
+test('every workspace mutation route applies a workspace ability', function () {
+    $unguarded = [];
+
+    foreach (Route::getRoutes()->getRoutes() as $route) {
+        // app/logout is excluded by the uri filter below: it carries no
+        // workspace, and must stay reachable for a member who can do nothing.
+        if (! str_starts_with($route->uri(), 'app/{workspace')
+            || array_intersect($route->methods(), ['POST', 'PUT', 'PATCH', 'DELETE']) === []) {
+            continue;
+        }
+
+        $applies = false;
+
+        foreach ($route->gatherMiddleware() as $middleware) {
+            if (is_string($middleware) && str_starts_with($middleware, 'can:')) {
+                $applies = true;
+
+                break;
+            }
+        }
+
+        if (! $applies) {
+            $unguarded[] = implode('|', $route->methods()).' '.$route->uri();
+        }
+    }
+
+    // A new mutation without an ability gate fails here rather than in review.
+    expect($unguarded)->toBe([]);
 });

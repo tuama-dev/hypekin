@@ -3,19 +3,13 @@
 namespace App\Http\Requests\Post;
 
 use App\Enums\Platform;
+use App\Http\Requests\WorkspaceAbilityRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AiCaptionRequest extends FormRequest
+class AiCaptionRequest extends WorkspaceAbilityRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return $this->user() !== null;
-    }
+    protected string $ability = 'publish';
 
     /**
      * Get the validation rules that apply to the request.

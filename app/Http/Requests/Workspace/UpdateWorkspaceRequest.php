@@ -2,24 +2,12 @@
 
 namespace App\Http\Requests\Workspace;
 
-use App\Models\Workspace;
+use App\Http\Requests\WorkspaceAbilityRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateWorkspaceRequest extends FormRequest
+class UpdateWorkspaceRequest extends WorkspaceAbilityRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        $workspace = $this->route('workspace');
-        $user = $this->user();
-
-        return $workspace instanceof Workspace
-            && $user !== null
-            && $user->can('update', $workspace);
-    }
+    protected string $ability = 'update';
 
     /**
      * Get the validation rules that apply to the request.

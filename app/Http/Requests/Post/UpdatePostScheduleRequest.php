@@ -2,18 +2,12 @@
 
 namespace App\Http\Requests\Post;
 
+use App\Http\Requests\WorkspaceAbilityRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
 
-class UpdatePostScheduleRequest extends FormRequest
+class UpdatePostScheduleRequest extends WorkspaceAbilityRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return $this->user() !== null;
-    }
+    protected string $ability = 'publish';
 
     /**
      * Get the validation rules that apply to the request.
