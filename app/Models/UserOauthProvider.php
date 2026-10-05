@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
+#[Hidden(['token', 'refresh_token'])]
 class UserOauthProvider extends Model
 {
     use HasFactory, HasUlids;
@@ -49,6 +51,8 @@ class UserOauthProvider extends Model
     protected function casts(): array
     {
         return [
+            'token' => 'encrypted',
+            'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
         ];
     }
