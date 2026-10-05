@@ -104,6 +104,20 @@ class AppServiceProvider extends ServiceProvider
                 $request->user()?->getKey().'|'.$request->route('post'),
             );
         });
+
+        /**
+         * Minting an upload policy is cheap for the server but hands out a
+         * writable destination on the bucket, so an unmetered endpoint turns
+         * into a way to fill someone else's storage. Keyed per user and
+         * workspace because that is the unit the uploads belong to.
+         */
+        RateLimiter::for('media-upload', function (Request $request): Limit {
+            $workspace = $request->route('workspace');
+
+            return Limit::perMinute(30)->by(
+                $request->user()?->getKey().'|'.($workspace instanceof Workspace ? $workspace->getKey() : (string) $workspace),
+            );
+        });
     }
 
     /**

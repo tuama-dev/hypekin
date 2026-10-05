@@ -47,10 +47,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Largest Accepted Pixel Dimension
+    |--------------------------------------------------------------------------
+    |
+    | Upper bound for the width and height a client reports at upload time.
+    | These drive layout, so an absurd value is rejected rather than trusted.
+    |
+    */
+
+    'max_dimension' => (int) env('MEDIA_MAX_DIMENSION', 20000),
+
+    /*
+    |--------------------------------------------------------------------------
     | Presigned Upload Validity (minutes)
     |--------------------------------------------------------------------------
     |
-    | How long a presigned PUT URL stays valid before the browser must finish
+    | How long an upload policy stays valid before the browser must finish
     | uploading. Large files over slow connections need more runway.
     |
     */

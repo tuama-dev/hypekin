@@ -41,8 +41,9 @@ const ACCEPTED_MIME_TYPES = [
 ];
 
 interface MediaIntent {
-    path: string;
+    upload_id: string;
     upload_url: string;
+    fields: Record<string, string>;
     expires_at: string;
 }
 
@@ -212,15 +213,24 @@ export default function CreatePost({
                 {
                     mime_type: file.type,
                     size_bytes: file.size,
+                    width: size.width,
+                    height: size.height,
                 },
             );
 
+            // Do not set Content-Type by hand: the browser must add the multipart
+            // boundary itself, and the signed policy rejects any type the server rejected.
+            const uploadBody = new FormData();
+
+            for (const [name, value] of Object.entries(intent.fields)) {
+                uploadBody.append(name, value);
+            }
+
+            uploadBody.append('file', file);
+
             const uploadResponse = await fetch(intent.upload_url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': file.type,
-                },
-                body: file,
+                method: 'POST',
+                body: uploadBody,
             });
 
             if (!uploadResponse.ok) {
@@ -233,11 +243,7 @@ export default function CreatePost({
                 MediaController.complete({ workspace: currentWorkspace.slug })
                     .url,
                 {
-                    path: intent.path,
-                    mime_type: file.type,
-                    size_bytes: file.size,
-                    width: size.width,
-                    height: size.height,
+                    upload_id: intent.upload_id,
                 },
             );
 

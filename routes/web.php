@@ -76,10 +76,10 @@ Route::group([], function (): void {
             ->middleware(['verified', 'workspace', 'can:view,workspace'])
             ->name('workspace.calendar');
         Route::post('/{workspace:slug}/media/intent', [MediaController::class, 'intent'])
-            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace', 'throttle:media-upload'])
             ->name('workspace.media.intent');
         Route::post('/{workspace:slug}/media/complete', [MediaController::class, 'complete'])
-            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace'])
+            ->middleware(['verified', 'workspace', 'can:manageMedia,workspace', 'throttle:media-upload'])
             ->name('workspace.media.complete');
         Route::get('/{workspace:slug}/media', [MediaController::class, 'index'])
             ->middleware(['verified', 'workspace', 'can:view,workspace'])
