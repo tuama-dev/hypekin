@@ -41,7 +41,7 @@ class EmailVerificationController extends Controller
     public function resend(Request $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('workspace.dashboard');
+            return redirect()->route('workspace.dashboard', ['workspace' => $request->user()->workspaces()->first()]);
         }
 
         if (self::nextResendAvailableAt($request)?->isFuture()) {

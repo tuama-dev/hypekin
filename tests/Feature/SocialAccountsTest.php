@@ -3,14 +3,33 @@
 use App\Actions\Application\Workspace\CreateWorkspaceAction;
 use App\Enums\Platform;
 use App\Enums\SocialAccountStatus;
+use App\Enums\WorkspaceRole;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
+
+/**
+ * Seed the connect-flow session record the way connect() writes it.
+ *
+ * @return array<string, mixed>
+ */
+function startConnectFlow(User $user, Workspace $workspace, string $platform, ?int $startedAt = null): array
+{
+    return [
+        'social_account.connect_workspace_id' => [
+            'workspace_id' => $workspace->getKey(),
+            'user_id' => $user->getKey(),
+            'platform' => $platform,
+            'started_at' => $startedAt ?? time(),
+        ],
+    ];
+}
 
 test('the accounts page renders the connected accounts of a member', function () {
     $user = User::factory()->create();
@@ -107,7 +126,10 @@ test('the connect route redirects to LinkedIn and remembers the workspace', func
     $this->actingAs($user)
         ->get(route('workspace.accounts.connect', ['workspace' => $workspace, 'platform' => 'linkedin']))
         ->assertRedirect()
-        ->assertSessionHas('social_account.connect_workspace_id', $workspace->getKey());
+        ->assertSessionHas('social_account.connect_workspace_id', fn (array $flow): bool => $flow['workspace_id'] === $workspace->getKey()
+            && $flow['user_id'] === $user->getKey()
+            && $flow['platform'] === 'linkedin'
+            && $flow['started_at'] > 0);
 });
 
 test('the connect route is blocked when LinkedIn is not configured', function () {
@@ -135,7 +157,7 @@ test('the callback stores the connected LinkedIn account', function () {
     ]));
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin'))
         ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertSessionHas('flash.success')
@@ -173,7 +195,7 @@ test('the callback returns 404 for a workspace the user is not part of', functio
     Socialite::fake('linkedin', SocialiteUser::fake(['id' => 'linkedin-user-123']));
 
     $this->actingAs($outsider)
-        ->withSession(['social_account.connect_workspace_id' => $foreignWorkspace->getKey()])
+        ->withSession(startConnectFlow($outsider, $foreignWorkspace, 'linkedin'))
         ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
         ->assertNotFound();
 });
@@ -187,7 +209,7 @@ test('the callback handles a denied authorization without storing an account', f
     });
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin'))
         ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertSessionHas('flash.error');
@@ -212,7 +234,7 @@ test('reconnecting the same LinkedIn account updates it instead of duplicating',
     ]));
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin'))
         ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']));
 
     Socialite::fake('linkedin', SocialiteUser::fake([
@@ -221,7 +243,7 @@ test('reconnecting the same LinkedIn account updates it instead of duplicating',
     ]));
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin'))
         ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']));
 
     $account = $workspace->socialAccounts()->first();
@@ -275,7 +297,7 @@ test('the callback stores the connected TikTok account', function () {
     ]));
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'tiktok'))
         ->get(route('workspace.accounts.callback', ['platform' => 'tiktok']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertSessionHas('flash.success');
@@ -305,7 +327,7 @@ test('the callback connects the Facebook pages a user manages', function () {
     ]);
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'facebook'))
         ->get(route('workspace.accounts.callback', ['platform' => 'facebook']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertSessionHas('flash.success');
@@ -336,7 +358,7 @@ test('the callback connects the Instagram business accounts linked to pages', fu
     ]);
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'instagram'))
         ->get(route('workspace.accounts.callback', ['platform' => 'instagram']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]))
         ->assertSessionHas('flash.success');
@@ -363,9 +385,83 @@ test('the callback skips Facebook pages without an access token', function () {
     ]);
 
     $this->actingAs($user)
-        ->withSession(['social_account.connect_workspace_id' => $workspace->getKey()])
+        ->withSession(startConnectFlow($user, $workspace, 'facebook'))
         ->get(route('workspace.accounts.callback', ['platform' => 'facebook']))
         ->assertRedirect(route('workspace.accounts', ['workspace' => $workspace]));
+
+    expect($workspace->socialAccounts()->count())->toBe(0);
+});
+
+test('the callback is refused when the user lost the ability during the flow', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    Socialite::fake('linkedin', SocialiteUser::fake([
+        'id' => 'linkedin-user-123',
+        'name' => 'John Doe',
+        'token' => 'secret-token',
+    ]));
+
+    // The flow was started while the user was the Owner, then demoted.
+    $flow = startConnectFlow($user, $workspace, 'linkedin');
+
+    $workspace->users()->updateExistingPivot($user->getKey(), ['role' => WorkspaceRole::Viewer->value]);
+
+    $this->actingAs($user)
+        ->withSession($flow)
+        ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
+        ->assertForbidden();
+
+    expect($workspace->socialAccounts()->count())->toBe(0);
+});
+
+test('the callback is refused when the flow record belongs to another user', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    Socialite::fake('linkedin', SocialiteUser::fake([
+        'id' => 'linkedin-user-123',
+        'token' => 'secret-token',
+    ]));
+
+    $other = User::factory()->create();
+    $workspace->users()->attach($other, ['role' => WorkspaceRole::Owner]);
+
+    $this->actingAs($other)
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin'))
+        ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
+        ->assertNotFound();
+
+    expect($workspace->socialAccounts()->count())->toBe(0);
+});
+
+test('the callback is refused when the flow was started for another platform', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    Socialite::fake('tiktok', SocialiteUser::fake(['id' => 'tiktok-1']));
+
+    $this->actingAs($user)
+        ->withSession(startConnectFlow($user, $workspace, 'tiktok'))
+        ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
+        ->assertNotFound();
+
+    expect($workspace->socialAccounts()->count())->toBe(0);
+});
+
+test('the callback is refused when the flow has expired', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    Socialite::fake('linkedin', SocialiteUser::fake([
+        'id' => 'linkedin-user-123',
+        'token' => 'secret-token',
+    ]));
+
+    $this->actingAs($user)
+        ->withSession(startConnectFlow($user, $workspace, 'linkedin', time() - 3600))
+        ->get(route('workspace.accounts.callback', ['platform' => 'linkedin']))
+        ->assertNotFound();
 
     expect($workspace->socialAccounts()->count())->toBe(0);
 });

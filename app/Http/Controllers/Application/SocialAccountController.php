@@ -21,6 +21,12 @@ class SocialAccountController extends Controller
 {
     private const CONNECT_WORKSPACE_SESSION_KEY = 'social_account.connect_workspace_id';
 
+    /**
+     * How long a started connect flow stays usable. Without it a callback that
+     * is never completed keeps its session record alive indefinitely.
+     */
+    private const CONNECT_FLOW_TTL_SECONDS = 900;
+
     public function __construct(
         private readonly ConnectSocialAccountAction $connectAccount,
         private readonly ConnectFacebookPagesAction $connectFacebookPages,
@@ -66,7 +72,7 @@ class SocialAccountController extends Controller
         ]);
     }
 
-    public function connect(Workspace $workspace, Platform $platform): RedirectResponse
+    public function connect(Request $request, Workspace $workspace, Platform $platform): RedirectResponse
     {
         if (! config('services.'.$platform->socialiteDriver().'.client_id')) {
             return redirect()
@@ -74,23 +80,51 @@ class SocialAccountController extends Controller
                 ->with('flash', ['error' => $platform->label().' publishing is not configured yet.']);
         }
 
-        session([self::CONNECT_WORKSPACE_SESSION_KEY => $workspace->getKey()]);
+        session([self::CONNECT_WORKSPACE_SESSION_KEY => [
+            'workspace_id' => $workspace->getKey(),
+            'user_id' => $request->user()->getKey(),
+            'platform' => $platform->value,
+            'started_at' => time(),
+        ]]);
 
         return Socialite::driver($platform->socialiteDriver())
             ->scopes($platform->scopes())
             ->redirect();
     }
 
+    /**
+     * Finish a connect flow that connect() started.
+     *
+     * The route itself carries no workspace, so the session record is the only
+     * thing tying the callback to the workspace and user that asked for it. It
+     * is bound to that user, that platform and a short window, and the ability
+     * is re-checked here: the role held when the flow started says nothing
+     * about the role held now.
+     */
     public function callback(Request $request, Platform $platform): RedirectResponse
     {
-        $workspaceId = $request->session()->pull(self::CONNECT_WORKSPACE_SESSION_KEY);
+        $flow = $request->session()->pull(self::CONNECT_WORKSPACE_SESSION_KEY);
 
-        $workspace = $workspaceId !== null ? Workspace::find($workspaceId) : null;
-
-        if ($workspace === null
-            || ! $request->user()->workspaces()->where('workspaces.id', $workspace->getKey())->exists()) {
+        if (! is_array($flow)
+            || ($flow['user_id'] ?? null) !== $request->user()->getKey()
+            || ($flow['platform'] ?? null) !== $platform->value
+            || ! is_int($flow['started_at'] ?? null)
+            || (time() - $flow['started_at']) > self::CONNECT_FLOW_TTL_SECONDS) {
             abort(404);
         }
+
+        $workspace = Workspace::find($flow['workspace_id'] ?? null);
+
+        if ($workspace === null) {
+            abort(404);
+        }
+
+        abort_unless(
+            $request->user()->workspaces()->where('workspaces.id', $workspace->getKey())->exists(),
+            404
+        );
+
+        abort_unless($request->user()->can('manageAccounts', $workspace), 403);
 
         try {
             $socialiteUser = Socialite::driver($platform->socialiteDriver())->user();

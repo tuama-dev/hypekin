@@ -160,16 +160,15 @@ function failingTarget(User $user, Workspace $workspace, string $caption): PostT
     return $target;
 }
 
-test('the notifications index lists the user\'s notifications across workspaces, newest first', function () {
+test('the notifications index lists the user\'s notifications for that workspace, newest first', function () {
     $user = User::factory()->create();
     $workspace = app(CreateWorkspaceAction::class)->ensure($user);
 
     $this->travelTo('2026-01-01 09:00:00');
     $first = failingTarget($user, $workspace, 'First post');
 
-    $this->travelTo('2026-01-01 10:00:00');
-    $secondWorkspace = app(CreateWorkspaceAction::class)->ensure(User::factory()->create());
-    $second = failingTarget($user, $secondWorkspace, 'Second post');
+    $this->travelTo('2026-01-01 09:30:00');
+    $second = failingTarget($user, $workspace, 'Second post');
 
     $firstId = $user->notifications()->where('data->post_id', $first->post_id)->first()->getKey();
     $secondId = $user->notifications()->where('data->post_id', $second->post_id)->first()->getKey();
@@ -184,6 +183,46 @@ test('the notifications index lists the user\'s notifications across workspaces,
             ->where('notifications.data.0.id', $secondId)
             ->where('notifications.data.0.data.post_id', $second->post_id)
             ->where('notifications.data.1.id', $firstId));
+});
+
+test('the notifications index does not leak another workspace\'s notifications', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    $mine = failingTarget($user, $workspace, 'Mine');
+
+    $secondWorkspace = app(CreateWorkspaceAction::class)->ensure(User::factory()->create());
+    $workspace->users()->attach($secondWorkspace->owner, ['role' => WorkspaceRole::Owner]);
+    failingTarget($user, $secondWorkspace, 'Theirs');
+
+    $this->actingAs($user)
+        ->get(route('workspace.notifications.index', ['workspace' => $workspace]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Application/Notifications/Index')
+            ->where('notifications.total', 1)
+            ->has('notifications.data', 1)
+            ->where('notifications.data.0.data.post_id', $mine->post_id));
+});
+
+test('marking a notification read is refused for a notification from another workspace', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    $secondWorkspace = app(CreateWorkspaceAction::class)->ensure(User::factory()->create());
+    $workspace->users()->attach($secondWorkspace->owner, ['role' => WorkspaceRole::Owner]);
+    failingTarget($user, $secondWorkspace, 'Theirs');
+
+    $notificationId = $user->notifications()->firstOrFail()->getKey();
+
+    $this->actingAs($user)
+        ->patch(route('workspace.notifications.read', [
+            'workspace' => $workspace,
+            'notification' => $notificationId,
+        ]))
+        ->assertNotFound();
+
+    expect($user->notifications()->firstOrFail()->read_at)->toBeNull();
 });
 
 test('the notifications index returns 404 for a user who is not a member', function () {

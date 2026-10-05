@@ -110,3 +110,12 @@ test('the resend cooldown comes from the verification.resend_cooldown setting', 
 
     Notification::assertSentToTimes($user, VerifyEmail::class, 2);
 });
+
+test('resending for an already verified user redirects to a real workspace', function () {
+    $user = User::factory()->create();
+    $workspace = app(CreateWorkspaceAction::class)->ensure($user);
+
+    $this->actingAs($user)
+        ->post(route('verification.send'))
+        ->assertRedirect(route('workspace.dashboard', ['workspace' => $workspace]));
+});
