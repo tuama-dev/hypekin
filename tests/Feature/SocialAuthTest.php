@@ -3,6 +3,7 @@
 use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Models\UserOauthProvider;
+use Illuminate\Support\Facades\DB;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -19,6 +20,7 @@ test('a new user can register with a social provider', function () {
         'id' => 'google-123',
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
+        'verified_email' => true,
     ]));
 
     $response = $this->get(route('auth.social.callback', ['provider' => 'google']));
@@ -70,6 +72,7 @@ test('a new social user gets a personal workspace', function () {
         'id' => 'google-321',
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
+        'verified_email' => true,
     ]));
 
     $this->get(route('auth.social.callback', ['provider' => 'google']));
@@ -120,6 +123,7 @@ test('an existing user without a workspace gets one when signing in with a socia
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-456',
         'email' => 'jane@example.com',
+        'verified_email' => true,
     ]));
 
     $this->get(route('auth.social.callback', ['provider' => 'google']));
@@ -136,6 +140,7 @@ test('an existing user can log in with a social provider by email', function () 
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-456',
         'email' => 'jane@example.com',
+        'verified_email' => true,
     ]));
 
     $response = $this->get(route('auth.social.callback', ['provider' => 'google']));
@@ -210,4 +215,126 @@ test('a denied grant redirects back to login with an error', function () {
         ->assertRedirect(route('login'));
 
     $this->assertGuest();
+});
+
+test('an unverified provider email cannot take over an existing account', function () {
+    $victim = User::factory()->create(['email' => 'victim@example.com']);
+
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'attacker-1',
+        'name' => 'Attacker',
+        'email' => 'victim@example.com',
+        'verified_email' => false,
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'google']))
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
+
+    $this->assertSame(1, User::count());
+    expect($victim->oauthProviders()->count())->toBe(0);
+});
+
+test('an unverified provider email cannot register a new account', function () {
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'attacker-2',
+        'name' => 'Attacker',
+        'email' => 'someone-else@example.com',
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'google']))
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
+
+    $this->assertDatabaseMissing('users', ['email' => 'someone-else@example.com']);
+});
+
+test('a facebook verified flag is trusted', function () {
+    $user = User::factory()->create(['email' => 'jane@example.com']);
+
+    Socialite::fake('facebook', SocialiteUser::fake([
+        'id' => 'fb-verified-1',
+        'email' => 'jane@example.com',
+        'verified' => true,
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'facebook']))
+        ->assertRedirect(route('workspace.dashboard', ['workspace' => $user->workspaces()->firstOrFail()]));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('an x confirmed_email is trusted', function () {
+    $user = User::factory()->create(['email' => 'jane@example.com']);
+
+    Socialite::fake('x', SocialiteUser::fake([
+        'id' => 'x-1',
+        'email' => 'jane@example.com',
+        'confirmed_email' => 'jane@example.com',
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'x']))
+        ->assertRedirect(route('workspace.dashboard', ['workspace' => $user->workspaces()->firstOrFail()]));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('a returning user matched by provider id is not blocked by email verification', function () {
+    $user = User::factory()->create();
+
+    UserOauthProvider::create([
+        'user_id' => $user->id,
+        'provider_name' => 'google',
+        'provider_id' => 'google-returns',
+        'token' => 'token',
+    ]);
+
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'google-returns',
+        'email' => $user->email,
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'google']));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('oauth provider tokens are stored encrypted and hidden from serialization', function () {
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'google-enc',
+        'email' => 'jane@example.com',
+        'verified_email' => true,
+        'token' => 'super-secret-access-token',
+        'refreshToken' => 'super-secret-refresh-token',
+    ]));
+
+    $this->get(route('auth.social.callback', ['provider' => 'google']));
+
+    $provider = UserOauthProvider::query()->where('provider_name', 'google')->firstOrFail();
+
+    $raw = DB::table('user_oauth_providers')->where('id', $provider->id)->first();
+
+    expect($raw->token)->not->toBe('super-secret-access-token');
+    expect($raw->refresh_token)->not->toBe('super-secret-refresh-token');
+
+    expect($provider->token)->toBe('super-secret-access-token')
+        ->and($provider->refresh_token)->toBe('super-secret-refresh-token')
+        ->and($provider->toArray())->not->toHaveKey('token')
+        ->and($provider->toArray())->not->toHaveKey('refresh_token');
+});
+
+test('long oauth provider tokens survive a round trip', function () {
+    $user = User::factory()->create();
+
+    $token = str_repeat('a', 600);
+
+    $provider = $user->oauthProviders()->create([
+        'provider_name' => 'google',
+        'provider_id' => 'google-long',
+        'token' => $token,
+    ]);
+
+    expect(strlen($provider->fresh()->token))->toBe(600);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Application\Auth;
 
+use App\Actions\Application\Auth\Exceptions\UnverifiedProviderEmailException;
 use App\Actions\Application\Auth\SocialAuthAction;
 use App\Actions\Application\Workspace\CreateWorkspaceAction;
 use App\Http\Controllers\Controller;
@@ -38,7 +39,15 @@ class SocialAuthController extends Controller
                 ->with('flash', ['error' => "Unable to sign in with {$provider}. Please try again."]);
         }
 
-        $user = $this->socialAuthAction->execute($provider, $socialiteUser);
+        try {
+            $user = $this->socialAuthAction->execute($provider, $socialiteUser);
+        } catch (UnverifiedProviderEmailException) {
+            return redirect()
+                ->route('login')
+                ->with('flash', [
+                    'error' => "Verify your email address with {$provider} before signing in, then try again.",
+                ]);
+        }
 
         $this->createWorkspace->ensure($user);
 

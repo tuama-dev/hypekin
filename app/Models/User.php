@@ -24,7 +24,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['fullname', 'email', 'password', 'email_verified_at'])]
+/**
+ * email_verified_at is deliberately absent: it is only ever set by the
+ * verification flow itself, so keeping it mass-assignable would let any code
+ * path that fills user input mark an arbitrary address as verified.
+ */
+#[Fillable(['fullname', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
